@@ -9,7 +9,7 @@ Build mode: fast
 
 ## Slices
 
-- [ ] **1. Upload a product and generate a real ad preview**
+- [x] **1. Upload a product and generate a real ad preview**
   Becomes usable: A local Docker Compose app where an owner uploads a photo, supplies required details, chooses language, and receives live Gemini artwork and readable ad text.
   Why now: Proves the distinctive photo-to-ad behavior and provider access before investing in editing polish. Bootstrapping is included in this usable flow.
   PRD ref: `prd.md > The Core Journey`, `Photo Upload`, `Product and Business Details`, `Language Choice`, `Advertisement Generation`
@@ -35,6 +35,8 @@ Slice 1 mechanical evidence: both Docker builds and frontend typecheck passed; 1
 
 - [x] Early usable behavior explored — after slice 1, before export/editing is finalized
 - [ ] Final kick-the-tires exploration and feedback completed — complete journey after slice 2
+
+Slice 2 mechanical evidence: Docker production build and TypeScript checks passed; 13 backend tests passed. Live Amharic generation followed by Amharic and English image edits produced inspected 1080-square PNG downloads. Artwork-region screenshot comparison was identical after edits; social-caption changes left the canvas screenshot identical. Price edits recalculated discount (900 from 1250 = 28%); removing old price omitted discount. Invalid old price and overflowing text blocked export and recovered after correction. Phone viewport had no horizontal overflow. Final learner review is pending.
 
 ## Final Review
 
