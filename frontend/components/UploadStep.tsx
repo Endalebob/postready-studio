@@ -1,0 +1,7 @@
+'use client';
+import {useEffect,useState} from 'react';
+export default function UploadStep({photo,onPhoto,next}:{photo:File|null;onPhoto:(f:File)=>void;next:()=>void}){
+ const [url,setUrl]=useState(''),[error,setError]=useState('');useEffect(()=>{if(!photo)return;const u=URL.createObjectURL(photo);setUrl(u);return()=>URL.revokeObjectURL(u);},[photo]);
+ async function pick(f?:File){if(!f)return;setError('');if(!['image/jpeg','image/png','image/webp'].includes(f.type)||f.size>10*1024*1024){setError('Choose a JPEG, PNG, or WebP photo smaller than 10 MB.');return;}const u=URL.createObjectURL(f);try{const i=new Image();i.src=u;await i.decode();if(i.width*i.height>20_000_000)throw Error();onPhoto(f);}catch{setError('Choose a usable photo below 20 megapixels.');}finally{URL.revokeObjectURL(u);}}
+ return <section className="panel"><span className="eyebrow">STEP 01 / YOUR PRODUCT</span><h1>Start with a photo.</h1><p>A clear product photo helps your advertisement shine.</p><label className="upload">{url?<img src={url} alt="Your uploaded product"/>:<><span className="upload-icon">＋</span><strong>Choose your product photo</strong><span>JPEG, PNG or WebP · up to 10 MB</span></>}<input aria-label="Upload product photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>pick(e.target.files?.[0])}/></label>{error&&<p role="alert" className="error">{error}</p>}<button className="primary" disabled={!photo} onClick={next}>Continue to details →</button></section>
+}
