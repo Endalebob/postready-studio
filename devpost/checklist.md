@@ -19,7 +19,7 @@ Build mode: fast
   Learner check: Open localhost:3010, upload your product photo, enter a name/current price/contact, choose language, and generate. Inspect the product likeness, readable details, and how easy the flow feels; report what you would change.
   Commit: `Add live product photo to advertisement flow`
 
-- [ ] **2. Edit image text and social copy, then download the current ad**
+- [x] **2. Edit image text and social copy, then download the current ad**
   Becomes usable: Separate image-text and social-caption editors, validated factual edits, and a PNG download that matches the preview.
   Why now: Builds on verified live artwork and early usability feedback to complete the central editing/export promise.
   PRD ref: `prd.md > Caption Editing and Download`, `Look and Feel`, `Product and Business Details`
@@ -34,25 +34,26 @@ Build mode: fast
 Slice 1 mechanical evidence: both Docker builds and frontend typecheck passed; 12 backend tests passed; live Amharic browser generation and English API generation succeeded with Gemini 3.8 Flash copy and Nano Banana artwork. Phone-width checks found no horizontal overflow. Failure recovery preserves input. Early learner feedback requested multiple contacts; the fix is implemented, built, and checked in the browser (add/remove preserves values, no phone-width overflow). Learner accepted multiple contacts. Three approved theme presets are implemented: Docker builds and typecheck pass, 13 backend tests pass, a live Bold Contrast request produced black artwork with green headline and red contacts, selection survives returning to details, and phone-width layout has no horizontal overflow. Learner accepted the themed demo and approved proceeding to editing/export.
 
 - [x] Early usable behavior explored — after slice 1, before export/editing is finalized
-- [ ] Final kick-the-tires exploration and feedback completed — complete journey after slice 2
+- [x] Final kick-the-tires exploration and feedback completed — complete journey after slice 2
 
-Slice 2 mechanical evidence: Docker production build and TypeScript checks passed; 13 backend tests passed. Live Amharic generation followed by Amharic and English image edits produced inspected 1080-square PNG downloads. Artwork-region screenshot comparison was identical after edits; social-caption changes left the canvas screenshot identical. Price edits recalculated discount (900 from 1250 = 28%); removing old price omitted discount. Invalid old price and overflowing text blocked export and recovered after correction. Phone viewport had no horizontal overflow. Final learner review is pending.
+Slice 2 mechanical evidence: Docker production build and TypeScript checks passed; 13 backend tests passed. Live Amharic generation followed by Amharic and English image edits produced inspected 1080-square PNG downloads. Artwork-region screenshot comparison was identical after edits; social-caption changes left the canvas screenshot identical. Price edits recalculated discount (900 from 1250 = 28%); removing old price omitted discount. Invalid old price and overflowing text blocked export and recovered after correction. Phone viewport had no horizontal overflow. Learner tested the complete journey and accepted the demo; no further changes requested.
 
 ## Final Review
 
-- [ ] Final review complete — feedback resolved and learner confirms ready to ship
+- [x] Final review complete — feedback resolved and learner confirms ready to ship
 
 ## Code Tour and App Map
 
-- [ ] Learning activity complete — focused investigation of a real usability/verification decision or prior practice connected
-- [ ] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
-- [ ] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
+- [x] Learning activity complete — focused investigation of a real usability/verification decision or prior practice connected
+- [x] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
+- [x] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
 
-Activity and evidence: not yet completed
-Route and stops: establish from finished code
-Edit outcome: not yet addressed
-Reflection: not yet offered
-Activity mode: focused alternative, to be established from actual build evidence
+Activity and evidence: brief evidence-based recap of the approved theme refinement, fixed prompt/palette implementation, and live verification, connected to predictable user controls. No additional hands-on learning exercise claimed.
+Route and stops: reference route in app map: ResultEditor → Page state → renderAd/export.
+Edit outcome: not applicable to focused recap; approved theme change already implemented and reviewed.
+Reflection: optional transfer question offered at handoff; no response required.
+Activity mode: focused alternative, evidence-based recap.
+Map evidence: source paths/anchors checked and HTML parsed; no script or external asset dependencies. File opened in Codex and linked at handoff. Browser visual check unavailable because file URLs are blocked.
 
 ## Revisions
 
