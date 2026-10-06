@@ -24,3 +24,7 @@ Build progress and acceptance criteria are in `devpost/checklist.md`.
 ## Try the complete flow
 
 Upload a product, enter details, choose language and a theme, then generate. Edit the headline, ad description, price, address, or contacts beneath the preview. Edit the social caption independently. Download PNG saves the current 1080 × 1080 advertisement; invalid prices or text that cannot fit must be corrected first. Text edits use the existing artwork without another AI request.
+
+## License
+
+Project code is available under the [MIT License](LICENSE). The bundled Noto Sans Ethiopic font retains its separate [SIL Open Font License](frontend/public/fonts/OFL.txt).
