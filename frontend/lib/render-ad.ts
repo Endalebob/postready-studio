@@ -15,6 +15,7 @@ export async function renderAd(canvas:HTMLCanvasElement,r:Result){
  canvas.width=1080;canvas.height=1080;const c=canvas.getContext('2d')!;const theme=themes[r.details.theme||'ethiopian-warmth'];
  c.fillStyle=theme.background;c.fillRect(0,0,1080,1080);
  const scale=Math.min(980/image.width,575/image.height);const w=image.width*scale,h=image.height*scale;c.drawImage(image,(1080-w)/2,30+(575-h)/2,w,h);
+ if(r.logo){const logo=new Image();logo.src=`data:${r.logo.mime_type};base64,${r.logo.base64}`;await logo.decode();const scale=Math.min(130/logo.width,90/logo.height);c.fillStyle='#ffffff';c.fillRect(870,40,150,110);c.drawImage(logo,880+(130-logo.width*scale)/2,50+(90-logo.height*scale)/2,logo.width*scale,logo.height*scale);}
  c.fillStyle=theme.price;c.fillRect(40,620,1000,4);
  text(c,r.image_text.headline,684,2,46,r.details.theme==='bold-contrast'?theme.price:theme.text);text(c,r.image_text.tagline,804,2,28,theme.text);
  const am=r.details.language==='am'; const price=`${r.details.current_price} ${am?'ብር':'ETB'}`;

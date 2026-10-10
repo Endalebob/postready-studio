@@ -4,4 +4,6 @@ COPY requirements.txt requirements.lock ./
 RUN --mount=type=cache,target=/root/.cache/pip pip install --timeout 120 --retries 5 -r requirements.lock
 COPY app ./app
 COPY tests ./tests
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+COPY migrations ./migrations
+COPY alembic.ini ./
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

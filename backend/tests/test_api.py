@@ -5,12 +5,18 @@ from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 from PIL import Image
 from app.main import app
+from app.accounts import current_user, User
+from support import install_database
 
 class ApiTests(unittest.TestCase):
     def setUp(self):
-        self.client = TestClient(app)
+        self.engine=install_database()
+        app.dependency_overrides[current_user]=lambda:User(id='test-owner',username='test',email='test@example.com',password_hash='unused')
+        self.client = TestClient(app,headers={'x-postready':'1'})
         self.details = dict(product_name='Shoes',current_price='100',contacts=[{'kind':'Phone','value':'demo-contact'}],language='en')
         out=io.BytesIO();Image.new('RGB',(40,40)).save(out,format='PNG');self.photo=out.getvalue()
+    def tearDown(self):
+        app.dependency_overrides.clear();self.engine.dispose()
     def post(self,details=None,photo=None):
         return self.client.post('/generate',data={'details':json.dumps(details or self.details)},files={'photo':('test.png',photo or self.photo,'image/png')})
     def test_fields_fail_before_provider(self):

@@ -5,11 +5,11 @@ Create an advertisement from one product photo, with Amharic or English copy. Bu
 ## Run locally
 
 1. Install/start Docker Desktop with Linux containers.
-2. Copy `.env.example` to `.env` and set `GEMINI_API_KEY` locally. Never commit the key. Model names can be adjusted to models available to your account.
+2. Copy `.env.example` to `.env` and set `GEMINI_API_KEY`, a strong `POSTGRES_PASSWORD`, `MINIO_ACCESS_KEY`, and `MINIO_SECRET_KEY` locally. Never commit the key. Model names can be adjusted to models available to your account.
 3. Run `docker compose up --build`.
 4. Open http://localhost:3010.
 
-The key stays in FastAPI. No business accounts or persistent upload storage are used. Working data clears on reload; Google receives the photo and relevant details for generation. Live generation requires available API quota and may incur provider charges.
+The key stays in FastAPI. Accounts and business profiles are now stored in PostgreSQL, with private business logos in MinIO. Generated ads are still session-only until the saved-library build slice is complete; Google receives the photo and relevant details for generation. Live generation requires available API quota and may incur provider charges.
 
 Home imagery is labeled as illustrative. The app must complete live generation for a real proof of concept; simulated results are not proof of the core flow.
 
@@ -19,12 +19,20 @@ Home imagery is labeled as illustrative. The app must complete live generation f
 
 `docker compose exec web npm run typecheck`
 
-Build progress and acceptance criteria are in `devpost/checklist.md`.
+The completed demo checklist is in `devpost/checklist.md`. First-release progress and acceptance criteria are in `devpost/post-mvp-checklist.md`.
 
 ## Try the complete flow
 
-Upload a product, enter details, choose language and a theme, then generate. Edit the headline, ad description, price, address, or contacts beneath the preview. Edit the social caption independently. Download PNG saves the current 1080 × 1080 advertisement; invalid prices or text that cannot fit must be corrected first. Text edits use the existing artwork without another AI request.
+Create an account and save a business profile, then upload a product. Review the prefilled contacts, address, language and theme, enter product details, then generate. Edit the headline, ad description, price, address, or contacts beneath the preview. Edit the social caption independently. Download PNG saves the current 1080 × 1080 advertisement; invalid prices or text that cannot fit must be corrected first. Text edits use the existing artwork without another AI request.
 
 ## License
 
 Project code is available under the [MIT License](LICENSE). The bundled Noto Sans Ethiopic font retains its separate [SIL Open Font License](frontend/public/fonts/OFL.txt).
+
+## Accounts and business profiles
+
+Create an account with username, email, password (at least 10 characters), and password confirmation. Save your business name, contacts, optional address/logo, default language and theme. New ad forms reuse those values; changes inside an ad do not update the profile. Logos accept PNG/JPEG/WebP up to 2 MiB and 4 megapixels and are composed directly into preview/export.
+
+PostgreSQL and MinIO use persistent named volumes; normal service restarts retain accounts and profiles. Database migrations run on API startup. The local MinIO container is built from a pinned official source release because prebuilt official images were unavailable. Its initial build downloads Go dependencies and may take longer than later builds.
+
+Local app origin defaults to `http://localhost:3010`. Set `APP_ORIGIN` to the exact frontend origin and `COOKIE_SECURE=true` before an HTTPS deployment. The current work is local development, not a completed public-release hardening audit. Generation requires authentication. Saved ads and Telegram publishing are still planned in `devpost/post-mvp-checklist.md`.
