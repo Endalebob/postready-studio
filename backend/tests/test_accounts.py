@@ -12,10 +12,13 @@ from support import install_database
 
 class AccountTests(unittest.TestCase):
     def setUp(self):
+        self.persist=patch('app.main.persist_generation',side_effect=lambda db,owner,result,photo:result)
+        self.persist.start()
         self.engine=install_database()
         self.a=TestClient(app,headers={'x-postready':'1'})
         self.b=TestClient(app,headers={'x-postready':'1'})
     def tearDown(self):
+        self.persist.stop()
         app.dependency_overrides.clear();self.engine.dispose()
     def register(self,client,name):
         return client.post('/auth/register',json={'username':name,'email':name+'@example.com','password':'A-long-test-password!','password_confirmation':'A-long-test-password!'})

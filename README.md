@@ -9,7 +9,7 @@ Create an advertisement from one product photo, with Amharic or English copy. Bu
 3. Run `docker compose up --build`.
 4. Open http://localhost:3010.
 
-The key stays in FastAPI. Accounts and business profiles are now stored in PostgreSQL, with private business logos in MinIO. Generated ads are still session-only until the saved-library build slice is complete; Google receives the photo and relevant details for generation. Live generation requires available API quota and may incur provider charges.
+The key stays in FastAPI. Accounts and business profiles are now stored in PostgreSQL, with private business logos in MinIO. Generated artwork and editable copy are saved to a private seven-day library; use Save advertisement to commit edits and the current PNG. Google receives the photo and relevant details for generation. Live generation requires available API quota and may incur provider charges.
 
 Home imagery is labeled as illustrative. The app must complete live generation for a real proof of concept; simulated results are not proof of the core flow.
 
@@ -35,4 +35,10 @@ Create an account with username, email, password (at least 10 characters), and p
 
 PostgreSQL and MinIO use persistent named volumes; normal service restarts retain accounts and profiles. Database migrations run on API startup. The local MinIO container is built from a pinned official source release because prebuilt official images were unavailable. Its initial build downloads Go dependencies and may take longer than later builds.
 
-Local app origin defaults to `http://localhost:3010`. Set `APP_ORIGIN` to the exact frontend origin and `COOKIE_SECURE=true` before an HTTPS deployment. The current work is local development, not a completed public-release hardening audit. Generation requires authentication. Saved ads and Telegram publishing are still planned in `devpost/post-mvp-checklist.md`.
+Local app origin defaults to `http://localhost:3010`. Set `APP_ORIGIN` to the exact frontend origin and `COOKIE_SECURE=true` before an HTTPS deployment. The current work is local development, not a completed public-release hardening audit. Generation requires authentication. Telegram publishing is the remaining slice in `devpost/post-mvp-checklist.md`.
+
+## Saved ads
+
+My Ads lists active advertisements. Generation fixes the expiry date at seven days; edits never renew it. Save advertisement stores the editable revision and its PNG. Reopening an ad restores its source artwork and logo snapshot. Conflicting saves are rejected rather than overwriting another tab. Delete requires confirmation and hides the ad immediately. Expired ads are denied on all access routes, with Celery/Redis cleanup every five minutes removing private assets and content. Profile logos are retained independently.
+
+If MinIO is unavailable, a temporary database copy keeps the generated source recoverable until saving succeeds or the fixed deadline arrives. A database outage returns an unsaved result with a signed deadline for a saving retry; downloading the current preview remains available. Storage errors never claim that edits or a PNG have been saved.

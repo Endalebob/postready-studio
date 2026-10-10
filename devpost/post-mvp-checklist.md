@@ -20,7 +20,7 @@ Build mode: fast (carried forward)
   Commit: `Add accounts and reusable business profiles`
   Verification evidence (2026-10-10): 20 backend tests passed in the production API container; Docker frontend production build and TypeScript checks passed; PostgreSQL migration `001_accounts` applied. Live registration, two contacts, MinIO logo upload, logout/login and profile/logo persistence across API/PostgreSQL/MinIO restarts passed. Browser verified profile-prefilled language/theme/address/contacts, ad-specific contact independence, live generation with the exact logo and 1080 × 1080 PNG export. Learner tested the flow and approved continuing on 2026-10-10.
 
-- [ ] **2. Reopen saved ads until their seven-day deadline**
+- [x] **2. Reopen saved ads until their seven-day deadline**
   Becomes usable: Owners return to a private ad library, edit/save/download ads, and see expiration dates.
   Why now: Builds on authenticated ownership and storage to deliver persistence.
   PRD ref: `post-mvp-requirements.md > R3 — Durable ad library`
@@ -29,6 +29,7 @@ Build mode: fast (carried forward)
   Verify (mechanical): Storage failures and stale revision tests; reload and service restart; boundary-time expiry on every access path; cleanup retry and preservation of active profile logos; English/Amharic saved exports.
   Learner check: Generate, save, refresh, reopen and edit an ad; download it and inspect the expiration date.
   Commit: `Add private saved ads and seven-day expiration`
+  Verification evidence (2026-10-10): 27 backend tests, production frontend build and TypeScript checks passed. Live Amharic and English generation, explicit Save, My Ads, refresh/reopen and saved PNG downloads passed. Saved edits survived PostgreSQL/MinIO/API restarts. Real PostgreSQL concurrent saves returned one success and one conflict. Expiry, storage recovery, signed retry deadlines, owner isolation, deletion and cleanup retry were covered by tests; Celery beat dispatched its scheduled cleanup through Redis successfully.
 
 - [ ] **3. Connect a Telegram channel and publish a reviewed ad**
   Becomes usable: Owners authorize a channel and publish an exact saved image/caption without leaving the app for every post.
@@ -62,3 +63,5 @@ Build mode: fast (carried forward)
 
 - Official prebuilt MinIO images could not be pulled from Docker Hub or Quay. Build the pinned official MinIO source release locally instead; same storage API and product choice, no third-party substitute.
 - Live startup exposed an Alembic import-path issue; setting its project import path repaired startup, and the PostgreSQL migration and restart checks passed afterward.
+
+- Generated-source persistence uses a temporary database fallback when MinIO fails; a signed generation receipt permits saving retries after a database outage while preserving the original seven-day deadline. This keeps the planned recovery behavior without regenerating artwork.

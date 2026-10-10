@@ -12,12 +12,14 @@ from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
 from . import storage
+from .ads import router as ads_router, persist_generation
 import base64
 
 
 app = FastAPI(title='PostReady Studio')
 app.include_router(accounts_router)
 app.include_router(logos_router)
+app.include_router(ads_router)
 
 @app.middleware('http')
 async def mutation_guard(request: Request, call_next):
@@ -61,7 +63,7 @@ async def create_ad(photo: UploadFile = File(...), details: str = Form(...), inc
             result['logo'] = logo
         if business_name:
             result['business_name'] = business_name
-        return result
+        return await run_in_threadpool(persist_generation, db, user.id, result, image)
     except asyncio.TimeoutError:
         raise HTTPException(504, 'We couldn’t create your ad. Please try again.')
     except Exception:

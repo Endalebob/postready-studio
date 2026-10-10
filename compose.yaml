@@ -24,7 +24,13 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://postready:${POSTGRES_PASSWORD}@db:5432/postready
       MINIO_ENDPOINT: minio:9000
+      CELERY_BROKER_URL: redis://redis:6379/0
     ports: ["127.0.0.1:8010:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 15
     depends_on:
       db:
         condition: service_healthy
@@ -36,6 +42,40 @@ services:
       BACKEND_URL: http://api:8000
     ports: ["127.0.0.1:3010:3000"]
     depends_on: [api]
+  redis:
+    image: redis:7.4.6
+    command: redis-server --appendonly yes
+    volumes: ["postready-redis:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+  worker:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://postready:${POSTGRES_PASSWORD}@db:5432/postready
+      MINIO_ENDPOINT: minio:9000
+      CELERY_BROKER_URL: redis://redis:6379/0
+    command: celery -A app.worker:celery worker --loglevel=info --concurrency=2
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  beat:
+    build: ./backend
+    env_file: .env
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+    command: celery -A app.worker:celery beat --loglevel=info --schedule=/schedule/celerybeat
+    volumes: ["postready-schedule:/schedule"]
+    depends_on:
+      redis:
+        condition: service_healthy
 volumes:
   postready-db:
   postready-images:
+  postready-redis:
+  postready-schedule:

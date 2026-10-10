@@ -13,7 +13,7 @@ def storage():
                  secret_key=os.environ['MINIO_SECRET_KEY'], secure=os.getenv('MINIO_SECURE', 'false') == 'true')
 
 
-def put(key, data):
+def put(key, data, content_type='image/png'):
     client = storage()
     if not client.bucket_exists(BUCKET):
         try:
@@ -21,7 +21,7 @@ def put(key, data):
         except S3Error as exc:
             if exc.code not in ('BucketAlreadyOwnedByYou', 'BucketAlreadyExists'):
                 raise
-    client.put_object(BUCKET, key, io.BytesIO(data), len(data), content_type='image/png')
+    client.put_object(BUCKET, key, io.BytesIO(data), len(data), content_type=content_type)
 
 
 def get(key):
@@ -35,3 +35,10 @@ def get(key):
 
 def remove(key):
     storage().remove_object(BUCKET, key)
+
+
+def remove_prefix(prefix):
+    client = storage()
+    if client.bucket_exists(BUCKET):
+        for item in client.list_objects(BUCKET, prefix=prefix, recursive=True):
+            client.remove_object(BUCKET, item.object_name)

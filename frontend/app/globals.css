@@ -6,3 +6,5 @@
 .result textarea{resize:vertical}.result .contacts-group{margin-top:24px}
 
 .account-nav{display:flex;align-items:center;gap:15px;font-size:13px}.account-nav button{background:none;color:#326348;border:0;padding:8px}.account-nav span{color:#697065}.profile-logo{width:100px;height:100px;object-fit:contain;background:white;border:1px solid #dedacb}.panel form>label{margin-bottom:18px}.logo-choice{display:flex;align-items:center;gap:10px;margin:20px 0}.logo-choice input{width:auto!important;margin:0!important}@media(max-width:700px){header{flex-wrap:wrap;gap:15px}.account-nav{width:100%;justify-content:flex-end;gap:8px}}
+
+.ad-list{display:grid;gap:20px}.saved-ad{padding:24px;border:1px solid #ded9ca;border-radius:16px}.saved-ad h2{font-size:24px;margin:0}.saved-ad .actions{flex-wrap:wrap}.saved-ad a{display:inline-block;text-decoration:none}.actions{flex-wrap:wrap}
