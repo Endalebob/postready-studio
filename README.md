@@ -52,3 +52,11 @@ If MinIO is unavailable, a temporary database copy keeps the generated source re
 5. Open a saved ad in My Ads, save any edits, and select Review Telegram post. Check the exact saved image, caption and destination, then press Publish now. The app reports queued, sending, published, failed or uncertain, and provides a link after confirmed success.
 
 Caption length is limited to 1024 characters. A confirmed failed attempt can be reviewed and retried. An uncertain outcome is never automatically resent: check the channel first. Repeated clicks do not create another attempt for the same saved revision and connection. Disconnect stops queued posts; permissions and the ad's original expiration are checked again before sending. Published Telegram messages remain in Telegram after the app's stored ad expires.
+
+## Product videos — first build slice
+
+Create video accepts 1–10 JPEG/PNG/WebP product photos (10 MB and 20 megapixels maximum per image). Edit product names, optional ETB prices and descriptions; reorder photos, choose 5/10/15 seconds and a visual theme, then generate. Local FFmpeg composition creates a vertical 720 × 1280 MP4 with crossfade transitions, exact product labels and a snapshot of business contacts/address/logo. This mode makes no paid AI video request.
+
+Jobs persist in PostgreSQL, with private inputs and outputs in MinIO. The existing Celery worker processes them; reload and reopen through recent videos to preview or download. Videos expire seven days after successful completion. Failed-job assets are cleaned up after one day; interrupted local rendering can be safely resumed. A maximum of two active video jobs per account limits accidental duplicate workload. Music/voice and AI motion are the remaining slices in `devpost/video-checklist.md`.
+
+Backend images now install FFmpeg and DejaVu fonts from Debian; the bundled Ethiopic font retains its OFL license in `backend/assets/fonts/OFL.txt`. Initial image builds download those packages. Rebuild through `docker compose up --build` so the API migration and worker use the new video code together.
