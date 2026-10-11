@@ -31,7 +31,7 @@ Build mode: fast (carried forward)
   Commit: `Add private saved ads and seven-day expiration`
   Verification evidence (2026-10-10): 27 backend tests, production frontend build and TypeScript checks passed. Live Amharic and English generation, explicit Save, My Ads, refresh/reopen and saved PNG downloads passed. Saved edits survived PostgreSQL/MinIO/API restarts. Real PostgreSQL concurrent saves returned one success and one conflict. Expiry, storage recovery, signed retry deadlines, owner isolation, deletion and cleanup retry were covered by tests; Celery beat dispatched its scheduled cleanup through Redis successfully.
 
-- [ ] **3. Connect a Telegram channel and publish a reviewed ad**
+- [x] **3. Connect a Telegram channel and publish a reviewed ad**
   Becomes usable: Owners authorize a channel and publish an exact saved image/caption without leaving the app for every post.
   Why now: Requires durable ownership and immutable ad revisions.
   PRD ref: `post-mvp-requirements.md > R4 — Connected social destinations`, `R5 — Publish a saved revision`
@@ -40,19 +40,20 @@ Build mode: fast (carried forward)
   Verify (mechanical): Permission/link challenge, account isolation, duplicate attempts, revoked access, expiry and ambiguous timeout tests. Live controlled-channel linking and publishing require configured bot/channel.
   Learner check: Connect your test channel, review an ad, publish once and verify the image/caption and published link.
   Commit: `Add verified Telegram channel publishing`
+  Mechanical evidence (2026-10-10): 39 backend tests passed; production frontend build and TypeScript compilation passed. Migration `003_telegram` applied. Browser connection UI correctly rejected an existing-webhook bot without removing its webhook. Read-only live bot authentication succeeded. The learner configured a dedicated bot; API/worker/beat reloaded, live getMe succeeded for @postread_studio_bot and getWebhookInfo confirmed no webhook. Learner-controlled channel linking/publication remains required before completing this slice and its planned hands-on review.
 
 ## Hands-on Checkpoints
 
 - [x] Early profile/defaults flow reviewed after slice 1
-- [ ] Complete saved-ad/publishing flow reviewed after slice 3
+- [x] Complete saved-ad/publishing flow reviewed after slice 3
 
 ## Final Review
 
-- [ ] All requested fixes verified and learner confirms the first-release build is ready for deployment preparation
+- [x] All requested fixes verified and learner confirms the first-release build is ready for deployment preparation
 
 ## Code Tour and App Map
 
-- [ ] Update map for authentication, persistence, expiration and publishing routes; provide a focused technical handoff
+- [x] Update map for authentication, persistence, expiration and publishing routes; provide a focused technical handoff
 
 ## Revisions
 
@@ -65,3 +66,11 @@ Build mode: fast (carried forward)
 - Live startup exposed an Alembic import-path issue; setting its project import path repaired startup, and the PostgreSQL migration and restart checks passed afterward.
 
 - Generated-source persistence uses a temporary database fallback when MinIO fails; a signed generation receipt permits saving retries after a database outage while preserving the original seven-day deadline. This keeps the planned recovery behavior without regenerating artwork.
+
+- Telegram live setup found that the configured bot already serves an existing webhook. Keep that integration intact and use a dedicated PostReady bot; do not delete another app's webhook.
+
+- Telegram hands-on feedback found a stale connection error after transient proxy connection resets and an incomplete private identity step. Clear polling errors on successful recovery and show a copyable private /start command while keeping action errors separate. Channel proof was detected; identity proof and live publication remain pending.
+
+- Learner confirmed Telegram connection now works; requested compact previews before proceeding. Added owner-protected 240px thumbnails (latest saved PNG, generated-artwork fallback) and responsive recent-ad cards. Production build and 39 tests passed; live two-ad thumbnail dimensions/encoding/owner isolation and browser image loading passed. Live Telegram publication and final review remain pending.
+
+- 2026-10-11: Learner confirmed the complete flow works and supplied evidence of actual Telegram image/caption posts. Compact previews were accepted. Slice 3 and final hands-on review are complete; deployment preparation remains separate. App map updated for the current architecture.

@@ -13,6 +13,7 @@ from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
 from . import storage
 from .ads import router as ads_router, persist_generation
+from .telegram import router as telegram_router
 import base64
 
 
@@ -20,6 +21,7 @@ app = FastAPI(title='PostReady Studio')
 app.include_router(accounts_router)
 app.include_router(logos_router)
 app.include_router(ads_router)
+app.include_router(telegram_router)
 
 @app.middleware('http')
 async def mutation_guard(request: Request, call_next):

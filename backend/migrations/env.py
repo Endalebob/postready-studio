@@ -2,6 +2,7 @@ from alembic import context
 from app.database import engine, Base
 from app import accounts
 from app import ads
+from app import telegram
 with engine().connect() as connection:
     context.configure(connection=connection, target_metadata=Base.metadata)
     with context.begin_transaction():

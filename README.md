@@ -35,10 +35,20 @@ Create an account with username, email, password (at least 10 characters), and p
 
 PostgreSQL and MinIO use persistent named volumes; normal service restarts retain accounts and profiles. Database migrations run on API startup. The local MinIO container is built from a pinned official source release because prebuilt official images were unavailable. Its initial build downloads Go dependencies and may take longer than later builds.
 
-Local app origin defaults to `http://localhost:3010`. Set `APP_ORIGIN` to the exact frontend origin and `COOKIE_SECURE=true` before an HTTPS deployment. The current work is local development, not a completed public-release hardening audit. Generation requires authentication. Telegram publishing is the remaining slice in `devpost/post-mvp-checklist.md`.
+Local app origin defaults to `http://localhost:3010`. Set `APP_ORIGIN` to the exact frontend origin and `COOKIE_SECURE=true` before an HTTPS deployment. The current work is local development, not a completed public-release hardening audit. Generation requires authentication. Telegram linking and reviewed publishing are implemented; the live channel check is tracked in `devpost/post-mvp-checklist.md`.
 
 ## Saved ads
 
 My Ads lists active advertisements. Generation fixes the expiry date at seven days; edits never renew it. Save advertisement stores the editable revision and its PNG. Reopening an ad restores its source artwork and logo snapshot. Conflicting saves are rejected rather than overwriting another tab. Delete requires confirmation and hides the ad immediately. Expired ads are denied on all access routes, with Celery/Redis cleanup every five minutes removing private assets and content. Profile logos are retained independently.
 
 If MinIO is unavailable, a temporary database copy keeps the generated source recoverable until saving succeeds or the fixed deadline arrives. A database outage returns an unsaved result with a signed deadline for a saving retry; downloading the current preview remains available. Storage errors never claim that edits or a PNG have been saved.
+
+## Telegram publishing
+
+1. Create a dedicated Telegram bot using BotFather and put its token in local `.env` as `TELEGRAM_BOT_TOKEN`. Restart API, worker and beat after changing it. The bot must have no existing webhook; local workers poll Telegram without a public URL.
+2. In the app, open Social channels and Start connection. Follow the bot link and press Start in Telegram.
+3. Add that bot as an administrator of a test channel with permission to post. Post the displayed connection command in that channel within 20 minutes.
+4. Wait for the app to show your verified identity and channel name, then confirm the connection. Both your Telegram account and the bot must have posting permission.
+5. Open a saved ad in My Ads, save any edits, and select Review Telegram post. Check the exact saved image, caption and destination, then press Publish now. The app reports queued, sending, published, failed or uncertain, and provides a link after confirmed success.
+
+Caption length is limited to 1024 characters. A confirmed failed attempt can be reviewed and retried. An uncertain outcome is never automatically resent: check the channel first. Repeated clicks do not create another attempt for the same saved revision and connection. Disconnect stops queued posts; permissions and the ad's original expiration are checked again before sending. Published Telegram messages remain in Telegram after the app's stored ad expires.

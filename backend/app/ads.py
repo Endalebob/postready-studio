@@ -243,6 +243,27 @@ def recover(edits: str = Form(...), generated: UploadFile = File(...), png: Uplo
         png.file.close()
     return save_revision(db, ad, values, data)
 
+@router.get('/ads/{ad_id}/thumbnail')
+def thumbnail(ad_id: str, user: User = Depends(current_user), db: Session = Depends(database)):
+    ad = owned(db, user.id, ad_id)
+    revision = db.get(AdRevision, (ad.id, ad.revision))
+    try:
+        if revision:
+            data = storage.get(revision.png_key)
+        elif ad.pending_sources and 'artwork' in ad.pending_sources:
+            data = base64.b64decode(ad.pending_sources['artwork']['base64'])
+        else:
+            data = storage.get(ad.sources['artwork']['key'])
+        with Image.open(io.BytesIO(data)) as image:
+            image.thumbnail((240, 240))
+            output = io.BytesIO()
+            image.convert('RGB').save(output, format='JPEG', quality=80)
+    except Exception:
+        raise HTTPException(503, 'Could not load the advertisement preview.')
+    if aware(ad.expires_at) <= now():
+        raise HTTPException(410, 'This advertisement has expired.')
+    return Response(output.getvalue(), media_type='image/jpeg')
+
 @router.get('/ads/{ad_id}/png')
 def download(ad_id: str, user: User = Depends(current_user), db: Session = Depends(database)):
     ad = owned(db, user.id, ad_id)
