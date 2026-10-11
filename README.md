@@ -57,6 +57,12 @@ Caption length is limited to 1024 characters. A confirmed failed attempt can be 
 
 Create video accepts 1–10 JPEG/PNG/WebP product photos (10 MB and 20 megapixels maximum per image). Edit product names, optional ETB prices and descriptions; reorder photos, choose 5/10/15 seconds and a visual theme, then generate. Local FFmpeg composition creates a vertical 720 × 1280 MP4 with crossfade transitions, exact product labels and a snapshot of business contacts/address/logo. This mode makes no paid AI video request.
 
-Jobs persist in PostgreSQL, with private inputs and outputs in MinIO. The existing Celery worker processes them; reload and reopen through recent videos to preview or download. Videos expire seven days after successful completion. Failed-job assets are cleaned up after one day; interrupted local rendering can be safely resumed. A maximum of two active video jobs per account limits accidental duplicate workload. Music/voice and AI motion are the remaining slices in `devpost/video-checklist.md`.
+Jobs persist in PostgreSQL, with private inputs and outputs in MinIO. The existing Celery worker processes them; reload and reopen through recent videos to preview or download. Videos expire seven days after successful completion. Failed-job assets are cleaned up after one day; interrupted local rendering can be safely resumed. A maximum of two active video jobs per account limits accidental duplicate workload. AI motion is the remaining slice in `devpost/video-checklist.md`.
 
 Backend images now install FFmpeg and DejaVu fonts from Debian; the bundled Ethiopic font retains its OFL license in `backend/assets/fonts/OFL.txt`. Initial image builds download those packages. Rebuild through `docker compose up --build` so the API migration and worker use the new video code together.
+
+## Video music and voice
+
+Choose no music, one of five previewable original synthesized instrumentals, or upload music. Optional voice starts at the beginning; music lowers during speech and recovers afterward using FFmpeg sidechain compression. Music loops/trims and fades to fit. Upload MP3/WAV/M4A/OGG/WebM up to 20 MB; music must be at most 60 seconds and voice must fit the selected video length. Invalid audio is rejected before a job is created, preserving the form. Inputs are decoded into bounded mono WAV snapshots stored privately alongside the video and removed at the same expiry. The exported MP4 uses AAC audio.
+
+The original preset recordings and reproducible composition script are in `backend/assets/music`, under the repository MIT license. They are synthesized instrument styles, not licensed commercial or live recordings. Use only audio you have permission to include.

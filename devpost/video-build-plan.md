@@ -27,7 +27,7 @@ Store private input/output assets in MinIO and owner-scoped job records in Postg
 
 Separate BFL and Google video adapters expose supported durations/image constraints and submit/poll/download methods. Provider task IDs persist before polling continues. Never silently switch paid providers or automatically resubmit an ambiguous paid request. Show provider and estimated cost before submission.
 
-Ten photos is the app upload limit; it does not mean every provider accepts ten images in one request. BFL keyframes and Google's multi-product scene assembly need controlled live validation. Only expose verified configurations. Music recordings must be selected and licensed or originally composed; styles are approved, assets are not yet bundled.
+Ten photos is the app upload limit; it does not mean every provider accepts ten images in one request. BFL keyframes and Google's multi-product scene assembly need controlled live validation. Only expose verified configurations. Five original synthesized instrumental miniatures are bundled under MIT, with a reproducible score/synthesis script. Uploaded music remains optional.
 
 References: https://ffmpeg.org/ffmpeg-filters.html ; https://docs.bfl.ai/flux_3/flux3_overview ; https://ai.google.dev/gemini-api/docs/veo
 

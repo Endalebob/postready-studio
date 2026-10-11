@@ -14,7 +14,7 @@ from PIL import Image
 from .accounts import User, Profile, current_user, now, aware
 from .database import Base, database
 from .images import normalize_image, MAX_BYTES
-from . import storage, video_render
+from . import storage, video_render, video_audio
 
 router=APIRouter()
 
@@ -69,6 +69,7 @@ class Options(BaseModel):
     theme: Literal['ethiopian-warmth','bold-contrast','clean-modern']
     language: Literal['en','am']
     include_logo: bool=True
+    music: Literal['none','upload','elegant-piano','bright-strings','warm-acoustic','grand-showcase','calm-classical']='none'
 
     @field_validator('request_key')
     @classmethod
@@ -98,12 +99,18 @@ def library(user:User=Depends(current_user),db:Session=Depends(database)):
     rows=db.scalars(select(Video).where(Video.owner_id==user.id).order_by(Video.created_at.desc()).limit(50)).all()
     return [view(row) for row in rows if not row.expires_at or aware(row.expires_at)>now()]
 
+@router.get('/videos/music/{preset}')
+def music_preview(preset:str,user:User=Depends(current_user)):
+    if preset not in video_audio.PRESETS:
+        raise HTTPException(404,'Music preset not found.')
+    return Response((video_audio.MUSIC_ROOT/(preset+'.wav')).read_bytes(),media_type='audio/wav')
+
 @router.get('/videos/{video_id}')
 def status(video_id:str,user:User=Depends(current_user),db:Session=Depends(database)):
     return view(owned(db,user.id,video_id))
 
 @router.post('/videos')
-def create(options:str=Form(...),photos:list[UploadFile]=File(...),user:User=Depends(current_user),db:Session=Depends(database)):
+def create(options:str=Form(...),photos:list[UploadFile]=File(...),music:UploadFile|None=File(None),voice:UploadFile|None=File(None),user:User=Depends(current_user),db:Session=Depends(database)):
     try:
         values=Options.model_validate_json(options)
         if len(photos)!=len(values.products):
@@ -112,6 +119,13 @@ def create(options:str=Form(...),photos:list[UploadFile]=File(...),user:User=Dep
         existing=db.scalar(select(Video).where(Video.owner_id==user.id,Video.request_key==values.request_key))
         if existing:
             return view(existing)
+        if (values.music=='upload') != bool(music):
+            raise HTTPException(422,'Upload a music file when choosing your own music.')
+        audio={}
+        if music:
+            audio['music']=video_audio.normalize(music.file.read(video_audio.MAX_AUDIO_BYTES+1),'Music',60)
+        if voice:
+            audio['voice']=video_audio.normalize(voice.file.read(video_audio.MAX_AUDIO_BYTES+1),'Voice',values.duration)
         images=[normalize_image(photo.file.read(MAX_BYTES+1)) for photo in photos]
         # Normalize again to the export's useful resolution, limiting working memory.
         normalized=[]
@@ -121,8 +135,9 @@ def create(options:str=Form(...),photos:list[UploadFile]=File(...),user:User=Dep
     except ValidationError as exc:
         raise HTTPException(422,[{'msg':e['msg']} for e in exc.errors()])
     finally:
-        for photo in photos:
-            photo.file.close()
+        for upload in [*photos,music,voice]:
+            if upload:
+                upload.file.close()
     # Serialize admission per account so parallel requests cannot exceed its limit.
     db.scalar(select(User).where(User.id==user.id).with_for_update())
     existing=db.scalar(select(Video).where(Video.owner_id==user.id,Video.request_key==values.request_key))
@@ -143,6 +158,8 @@ def create(options:str=Form(...),photos:list[UploadFile]=File(...),user:User=Dep
         for i,image in enumerate(normalized):
             key=prefix(row)+f'photos/{i}.jpg';storage.put(key,image,'image/jpeg');refs.append(key)
         assets={'photos':refs}
+        for kind,data in audio.items():
+            key=prefix(row)+kind+'.wav';storage.put(key,data,'audio/wav');assets[kind]=key
         if values.include_logo and profile and profile.logo_key:
             key=prefix(row)+'logo.png';storage.put(key,storage.get(profile.logo_key));assets['logo']=key
         row.assets=assets;row.status='queued';row.updated_at=now();db.commit()
@@ -193,6 +210,12 @@ def process_video(db):
         logo=storage.get(row.assets['logo']) if row.assets.get('logo') else None
         with tempfile.TemporaryDirectory(prefix='postready-video-') as directory:
             output=video_render.render(photos,row.details['products'],row.details,directory,logo)
+            music=storage.get(row.assets['music']) if row.assets.get('music') else None
+            preset=row.details.get('music','none')
+            if preset in video_audio.PRESETS:
+                music=(video_audio.MUSIC_ROOT/(preset+'.wav')).read_bytes()
+            voice=storage.get(row.assets['voice']) if row.assets.get('voice') else None
+            output=video_audio.compose(output,row.details['duration'],directory,music,voice)
         key=prefix(row)+'video.mp4';storage.put(key,output,'video/mp4')
         row.output_key=key;row.status='ready';row.expires_at=now()+timedelta(days=7);row.error=None
         row.updated_at=now();db.commit()
