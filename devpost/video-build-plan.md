@@ -45,6 +45,6 @@ The owner can generate and download a real video with all selected products and 
 
 ## Outstanding validation
 
-Video provider paid access, product fidelity, Google multi-product handling, actual music assets and the proposed defaults above remain to be resolved or reviewed. The current Gemini model listing confirms visibility of Veo Standard, not successful generation or quota. No paid video test has run yet.
+Live BFL Draft and Google Veo Standard access were confirmed by successful small generations and downloads on 2026-10-11. Google multi-product composition uses one four-second generation per product; the UI displays the full generation estimate before creation. Five original music presets are bundled. BFL keyframes use explicit label-aligned timestamps. Final learner review of fidelity, audio and the integrated journey remains pending.
 
 - Owner approved the displayed build order and defaults on 2026-10-11.

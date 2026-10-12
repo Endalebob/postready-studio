@@ -28,9 +28,9 @@ Build mode: fast (carried forward). Owner approved order and defaults on 2026-10
   Verify (mechanical): No music/voice-only/mixed exports, audio duration and audible lowering, invalid uploads and long voice behavior.
   Learner check: Select music, upload voice, export and listen.
   Commit: `Add selectable music and voice mixing to videos`
-  Mechanical evidence (2026-10-11): All 49 tests and production frontend compilation passed. Real music-only, voice-only and mixed H.264/AAC exports retain the selected duration; spectral RMS checks confirm music lowers during speech and recovers afterward. Invalid/overlong audio creates no job, private audio snapshots expire with videos, and all five original previews decode. Live browser verified preset playback, voice preview/upload, a ten-second mixed video and downloaded AAC stream, overlong voice rejection with the form retained, and uploaded-music generation. Original synthesized recordings and reproducible scores are bundled under MIT. Final listening review remains at the planned final checkpoint.
+  Mechanical evidence (2026-10-11): All 49 tests and production frontend compilation passed. Real music-only, voice-only and mixed H.264/AAC exports retain the selected duration; spectral RMS checks confirm music lowers during speech and recovers afterward. Invalid/overlong audio creates no job, private audio snapshots expire with videos, and all five original previews decode. Live browser verified preset playback, voice preview/upload, a ten-second mixed video and downloaded AAC stream, overlong voice rejection with the form retained, and uploaded-music generation. Original synthesized recordings and reproducible scores are bundled under MIT. Owner approved the integrated journey at the final checkpoint on 2026-10-12.
 
-- [ ] **3. Generate AI motion through BFL and Google**
+- [x] **3. Generate AI motion through BFL and Google**
   Becomes usable: Select an available provider and supported duration, generate a real product-motion video, preview and download.
   Why now: Reuses proven composition, storage and audio.
   PRD ref: `video-ads-target.md > Provider direction — 2026-10-11`
@@ -39,15 +39,16 @@ Build mode: fast (carried forward). Owner approved order and defaults on 2026-10
   Verify (mechanical): Provider contracts/errors, restart/resume, supported duration/photo limits, controlled real generation and fidelity check.
   Learner check: Generate and inspect a motion ad with selected products/audio.
   Commit: `Add BFL and Google video generation integrations`
+  Mechanical evidence (2026-10-11): All 55 tests and the production frontend/TypeScript build passed. Tests cover paid-task persistence, transient polling/restart recovery, ambiguous submission without repeat spending, provider rejection, cost acknowledgment, native durations and real multi-scene composition. Live BFL five-second Draft and Google four-second Standard generations downloaded and became private 720 x 1280 app videos with exact profile/product labels. Live two-image BFL timing validation exposed a label/keyframe mismatch; explicit timestamp pins corrected it, confirmed in output frames, with selected piano music mixed in. Browser verified audio preview/uploads, provider choices, Google multi-product total estimate, MP4 preview/download and retained library/expiry after service recreation. Mobile layout checked at 390 px without horizontal overflow. Paid generation test estimates totaled USD 2.50 (three five-second BFL drafts and one four-second Google video); rejected malformed Google request produced no generation. Owner approved the integrated video/audio/provider journey on 2026-10-12; no changes requested.
 
 ## Hands-on Checkpoints
 
 - [x] Early transition-video review after slice 1
-- [ ] Final video/audio/provider review after slice 3
+- [x] Final video/audio/provider review after slice 3
 
 ## Final Review
 
-- [ ] Learner observations resolved and integrated video journey accepted
+- [x] Learner observations resolved and integrated video journey accepted
 
 ## Code Tour and App Map
 
@@ -59,3 +60,6 @@ Build mode: fast (carried forward). Owner approved order and defaults on 2026-10
 - Direct video publishing is deferred.
 
 - FFmpeg 7 crossfade validation exposed a lost constant-frame-rate value after timestamp reset; explicitly applying the FPS filter repaired real rendering.
+
+- BFL plain multi-image keyframes pin the last product only at the end. Explicit timestamps now align each product photo with its local label interval; the corrected two-product live export passed frame inspection.
+- Google REST image input uses bytesBase64Encoded/mimeType; the installed official SDK confirmed the serialization, and a corrected live request succeeded.

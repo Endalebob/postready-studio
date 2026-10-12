@@ -6,7 +6,7 @@ from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Literal
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 from sqlalchemy import JSON, DateTime, ForeignKey, String, UniqueConstraint, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, Session, mapped_column
@@ -14,7 +14,7 @@ from PIL import Image
 from .accounts import User, Profile, current_user, now, aware
 from .database import Base, database
 from .images import normalize_image, MAX_BYTES
-from . import storage, video_render, video_audio
+from . import storage, video_render, video_audio, video_providers
 
 router=APIRouter()
 
@@ -63,13 +63,27 @@ class Product(BaseModel):
 class Options(BaseModel):
     model_config={'extra':'forbid'}
     request_key: str=Field(min_length=36,max_length=36)
-    mode: Literal['transitions']='transitions'
+    mode: Literal['transitions','motion']='transitions'
     products: list[Product]=Field(min_length=1,max_length=10)
-    duration: Literal[5,10,15]
+    duration: int=Field(ge=4,le=20)
     theme: Literal['ethiopian-warmth','bold-contrast','clean-modern']
     language: Literal['en','am']
     include_logo: bool=True
     music: Literal['none','upload','elegant-piano','bright-strings','warm-acoustic','grand-showcase','calm-classical']='none'
+    provider: Literal['bfl','google']='bfl'
+    cost_acknowledged: bool=False
+
+    @model_validator(mode='after')
+    def valid_video(self):
+        if self.mode=='transitions' and self.duration not in (5,10,15):
+            raise ValueError('Choose 5, 10 or 15 seconds for photo transitions.')
+        if self.mode=='motion':
+            supported=range(5,21) if self.provider=='bfl' else (4,6,8)
+            if self.duration not in supported:
+                raise ValueError('Choose a supported duration for this provider.')
+            if not self.cost_acknowledged:
+                raise ValueError('Review and accept the estimated provider cost before generating.')
+        return self
 
     @field_validator('request_key')
     @classmethod
@@ -82,6 +96,8 @@ def prefix(row):
 def view(row):
     return {'id':row.id,'status':row.status,'title':row.details['products'][0]['name'],
             'duration':row.details['duration'],'photo_count':len(row.details['products']),
+            'mode':row.details.get('mode','transitions'),'provider':row.details.get('provider') if row.details.get('mode')=='motion' else None,
+            'estimated_cost':row.details.get('estimated_cost'),
             'created_at':aware(row.created_at).isoformat(),
             'expires_at':aware(row.expires_at).isoformat() if row.expires_at else None,'error':row.error,
             'media_url':f'/api/backend/videos/{row.id}/media' if row.status=='ready' else None}
@@ -105,6 +121,10 @@ def music_preview(preset:str,user:User=Depends(current_user)):
         raise HTTPException(404,'Music preset not found.')
     return Response((video_audio.MUSIC_ROOT/(preset+'.wav')).read_bytes(),media_type='audio/wav')
 
+@router.get('/videos/providers/options')
+def provider_options(user:User=Depends(current_user)):
+    return video_providers.options()
+
 @router.get('/videos/{video_id}')
 def status(video_id:str,user:User=Depends(current_user),db:Session=Depends(database)):
     return view(owned(db,user.id,video_id))
@@ -119,6 +139,11 @@ def create(options:str=Form(...),photos:list[UploadFile]=File(...),music:UploadF
         existing=db.scalar(select(Video).where(Video.owner_id==user.id,Video.request_key==values.request_key))
         if existing:
             return view(existing)
+        if values.mode=='motion':
+            try:
+                video_providers.key(values.provider)
+            except video_providers.ProviderFailure as exc:
+                raise HTTPException(503,str(exc))
         if (values.music=='upload') != bool(music):
             raise HTTPException(422,'Upload a music file when choosing your own music.')
         audio={}
@@ -143,11 +168,13 @@ def create(options:str=Form(...),photos:list[UploadFile]=File(...),music:UploadF
     existing=db.scalar(select(Video).where(Video.owner_id==user.id,Video.request_key==values.request_key))
     if existing:
         return view(existing)
-    active=db.scalars(select(Video.id).where(Video.owner_id==user.id,Video.status.in_(['staging','queued','processing']))).all()
+    active=db.scalars(select(Video.id).where(Video.owner_id==user.id,Video.status.in_(['staging','queued','processing','generating','submitting']))).all()
     if len(active)>=2:
         raise HTTPException(429,'Wait for your current videos to finish before creating another.')
     profile=db.get(Profile,user.id)
     details=values.model_dump(mode='json')
+    if values.mode=='motion':
+        details['estimated_cost']=video_providers.estimate(values.provider,values.duration,len(values.products))
     details.update({'business_name':profile.data['business_name'] if profile else '',
                     'contacts':profile.data['contacts'] if profile else [],'address':profile.data['address'] if profile else ''})
     row=Video(id=str(uuid.uuid4()),owner_id=user.id,request_key=values.request_key,status='staging',details=details,
@@ -194,16 +221,19 @@ def media(video_id:str,request:Request,download:bool=False,user:User=Depends(cur
     return Response(data,media_type='video/mp4',headers=headers)
 
 def process_video(db):
+    from .video_motion import advance
+    motion_id=advance(db)
     # Local rendering is safely repeatable. Recover jobs after a stopped worker.
     old=now()-timedelta(minutes=10)
     for row in db.scalars(select(Video).where(Video.status=='processing',Video.updated_at<old).with_for_update(skip_locked=True)).all():
-        row.status='queued';row.updated_at=now()
+        if row.details.get('mode','transitions')=='transitions':
+            row.status='queued';row.updated_at=now()
     for row in db.scalars(select(Video).where(Video.status=='staging',Video.updated_at<old).with_for_update(skip_locked=True)).all():
         row.status='failed';row.error='Photo upload was interrupted. Please submit your video again.';row.updated_at=now()
     db.commit()
-    row=db.scalar(select(Video).where(Video.status=='queued').order_by(Video.created_at).with_for_update(skip_locked=True).limit(1))
+    row=db.scalar(select(Video).where(Video.status=='queued',Video.details['mode'].as_string()=='transitions').order_by(Video.created_at).with_for_update(skip_locked=True).limit(1))
     if not row:
-        return None
+        return motion_id
     id=row.id;row.status='processing';row.updated_at=now();db.commit()
     try:
         photos=[storage.get(key) for key in row.assets['photos']]
@@ -224,7 +254,7 @@ def process_video(db):
     return id
 
 def cleanup_videos(db):
-    rows=db.scalars(select(Video).where((Video.expires_at<=now())|((Video.status=='failed')&(Video.updated_at<=now()-timedelta(days=1))))).all()
+    rows=db.scalars(select(Video).where((Video.expires_at<=now())|((Video.status=='failed')&(Video.updated_at<=now()-timedelta(days=1)))|((Video.status=='uncertain')&(Video.updated_at<=now()-timedelta(days=7))))).all()
     count=0
     for row in rows:
         try:

@@ -119,3 +119,38 @@ def render(photos, products, settings, directory, logo=None):
     if video['width']!=WIDTH or video['height']!=HEIGHT or abs(float(probe['format']['duration'])-duration)>0.15:
         raise RuntimeError('Video output validation failed.')
     return output.read_bytes()
+
+def motion(clips,photos,products,settings,directory,logo=None):
+    """Place generated footage inside exact locally rendered product labels."""
+    root=Path(directory)
+    duration=settings['duration'];length=duration/len(products)
+    clip_paths=[]
+    for i,data in enumerate(clips):
+        path=root/f'provider-{i}.mp4';path.write_bytes(data);clip_paths.append(path)
+        probe=json.loads(command(['ffprobe','-v','error','-show_streams','-show_format','-of','json',str(path)],30))
+        video=next(s for s in probe['streams'] if s['codec_type']=='video')
+        if video['width']>4096 or video['height']>4096 or float(probe['format']['duration'])>30:
+            raise RuntimeError('Provider output exceeds video limits.')
+        required=duration if len(clips)==1 else length
+        if float(probe['format']['duration'])<required-0.15:
+            raise RuntimeError('Provider returned a video that is too short.')
+    outputs=[]
+    for i,(photo,product) in enumerate(zip(photos,products,strict=True)):
+        background=root/f'motion-labels-{i}.png';scene(photo,product,settings,background,logo)
+        output=root/f'motion-scene-{i}.mp4';outputs.append(output)
+        offset=i*length if len(clips)==1 else 0
+        clip=clip_paths[0] if len(clips)==1 else clip_paths[i]
+        color=THEMES[settings['theme']][0]
+        command(['ffmpeg','-v','error','-y','-threads','1','-filter_complex_threads','1',
+                 '-loop','1','-framerate',str(FPS),'-i',str(background),'-ss',str(offset),'-i',str(clip),
+                 '-filter_complex',f'[1:v]scale=624:650:force_original_aspect_ratio=decrease,pad=624:650:(ow-iw)/2:(oh-ih)/2:color={color},setsar=1,fps={FPS}[art];[0:v][art]overlay=48:150:shortest=1,format=yuv420p[out]',
+                 '-map','[out]','-an','-t',str(length),'-r',str(FPS),'-c:v','libx264','-threads','1','-preset','veryfast','-crf','23',str(output)])
+    concat=root/'motion-scenes.txt';concat.write_text(''.join(f"file '{path.name}'\n" for path in outputs))
+    final=root/'motion-advertisement.mp4'
+    command(['ffmpeg','-v','error','-y','-f','concat','-safe','1','-i',str(concat),'-t',str(duration),'-an',
+             '-c:v','libx264','-threads','1','-preset','veryfast','-pix_fmt','yuv420p','-movflags','+faststart',str(final)])
+    probe=json.loads(command(['ffprobe','-v','error','-show_streams','-show_format','-of','json',str(final)],30))
+    video=next(s for s in probe['streams'] if s['codec_type']=='video')
+    if video['width']!=WIDTH or video['height']!=HEIGHT or abs(float(probe['format']['duration'])-duration)>.15:
+        raise RuntimeError('Motion video validation failed.')
+    return final.read_bytes()
