@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:17.6
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postready
       POSTGRES_DB: postready
@@ -13,6 +14,7 @@ services:
       retries: 15
   minio:
     build: ./infra/minio
+    restart: unless-stopped
     command: server /data
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?Set MINIO_ACCESS_KEY in .env}
@@ -20,6 +22,7 @@ services:
     volumes: ["postready-images:/data"]
   api:
     build: ./backend
+    restart: unless-stopped
     env_file: .env
     environment:
       DATABASE_URL: postgresql+psycopg://postready:${POSTGRES_PASSWORD}@db:5432/postready
@@ -38,12 +41,14 @@ services:
         condition: service_started
   web:
     build: ./frontend
+    restart: unless-stopped
     environment:
       BACKEND_URL: http://api:8000
     ports: ["127.0.0.1:3010:3000"]
     depends_on: [api]
   redis:
     image: redis:7.4.6
+    restart: unless-stopped
     command: redis-server --appendonly yes
     volumes: ["postready-redis:/data"]
     healthcheck:
@@ -53,6 +58,7 @@ services:
       retries: 15
   worker:
     build: ./backend
+    restart: unless-stopped
     env_file: .env
     environment:
       DATABASE_URL: postgresql+psycopg://postready:${POSTGRES_PASSWORD}@db:5432/postready
@@ -66,6 +72,7 @@ services:
         condition: service_healthy
   beat:
     build: ./backend
+    restart: unless-stopped
     env_file: .env
     environment:
       CELERY_BROKER_URL: redis://redis:6379/0
