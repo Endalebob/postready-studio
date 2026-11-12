@@ -87,3 +87,12 @@ The first foundation supports 100 retained items per account, including pending 
 Open **Campaigns** to save a paused draft with approved gallery products and a verified Telegram channel. Choose daily, weekly (default), or monthly, a local time and an IANA timezone; the screen previews the next three future occurrences. Monthly days clamp to the last day in shorter months. Nonexistent daylight-saving times are skipped and repeated times use only their first occurrence.
 
 Drafts survive restarts and remain paused. This step does not generate ads, activate scheduled work or publish posts. Up to ten non-deleted drafts per account are supported. Product approval and channel availability are checked again on save; changed or deleted references are flagged when reopening a draft. Deleting a draft leaves gallery products intact. Migration `006_campaigns` adds owner-scoped draft records; selected product IDs remain in the validated settings so missing/deleted products can be reported.
+
+
+### Prepare one campaign advertisement
+
+Open a saved campaign and use **Prepare a post**. Select an approved campaign product, confirm the provider-charge notice, and request one ad. The worker captures the product facts, campaign language/theme/instructions and business logo, generates copy and artwork, then stores a server-rendered 1080px PNG with the existing editable ad. Open it for review, edit and save; its original 30-day expiration is unchanged.
+
+Preparations persist across API/worker restarts. In-flight provider calls are never blindly resubmitted after an uncertain result. A confirmed artwork result can be saved again without another AI call; text that cannot fit remains accessible in the editor for correction. Changing the source approval or campaign before completion stops preparation. Guardrails allow two actively running preparations and ten requests per rolling 24 hours per owner. Private preparation snapshots are cleaned up after 30 days; ordinary ad expiry/cleanup is independent.
+
+This step generates only after an explicit owner request. It does not schedule or publish campaign posts. Migration `007_preparations` and the `campaign-preparations` Celery Beat task add the durable preparation workflow. The existing ad editor reopens exact saved PNGs and preserves the product-image region when editing text.
