@@ -1,9 +1,11 @@
 import {useEffect,useRef,useState} from 'react';
 import {Details,Result,AdMetadata} from '../lib/types';import {request} from '../lib/api';
+const imageContent=(r:Result)=>JSON.stringify({details:r.details,image_text:r.image_text,discount:r.discount_percent});
 const content=(r:Result)=>JSON.stringify({details:r.details,image_text:r.image_text,social_caption:r.social_caption});
 import {renderAd} from '../lib/render-ad';import PublishPanel from './PublishPanel';
 import {validate} from '../lib/validation';
 export default function ResultEditor({result,onChange,back,backLabel="← Back to details"}:{result:Result;onChange:(r:Result)=>void;back:()=>void;backLabel?:string}){
+ const initialTheme=useRef(result.details.theme),initialImage=useRef(imageContent(result)),savedImage=useRef<HTMLImageElement|null>(null);
  const canvas=useRef<HTMLCanvasElement>(null),[error,setError]=useState(''),[ready,setReady]=useState<Result|null>(null),[downloading,setDownloading]=useState(false),[saving,setSaving]=useState(false),[saveError,setSaveError]=useState(''),[saved,setSaved]=useState(result.has_png?content(result):''),[clock,setClock]=useState(Date.now());
  const mounted=useRef(true);useEffect(()=>{mounted.current=true;const timer=setInterval(()=>setClock(Date.now()),1000);return()=>{mounted.current=false;clearInterval(timer)}},[]);
  const expired=!!result.expires_at&&clock>=Date.parse(result.expires_at);
@@ -12,7 +14,7 @@ export default function ResultEditor({result,onChange,back,backLabel="← Back t
  useEffect(()=>{let active=true;setReady(null);setError('');
   if(Object.keys(validate(result.details)).length)return;
   const draft=document.createElement('canvas');
-  renderAd(draft,result).then(()=>{if(!active)return;const visible=canvas.current!;visible.width=draft.width;visible.height=draft.height;visible.getContext('2d')!.drawImage(draft,0,0);setReady(result);}).catch(e=>{if(active)setError(e.message)});
+  (async()=>{if(result.has_png&&result.id&&result.revision&&imageContent(result)===initialImage.current){if(!savedImage.current){const img=new Image();img.src='/api/backend/ads/'+result.id+'/revisions/'+result.revision+'/png';await img.decode();savedImage.current=img}draft.width=1080;draft.height=1080;draft.getContext('2d')!.drawImage(savedImage.current,0,0)}else{await renderAd(draft,result);if(savedImage.current&&result.details.theme===initialTheme.current){draft.getContext('2d')!.drawImage(savedImage.current,0,0,1080,620,0,0,1080,620)}}})().then(()=>{if(!active)return;const visible=canvas.current!;visible.width=draft.width;visible.height=draft.height;visible.getContext('2d')!.drawImage(draft,0,0);setReady(result);}).catch(e=>{if(active)setError(e.message)});
   return()=>{active=false};
  },[result]);
  function updateDetails(details:Details){const discount=details.old_price?Math.round((Number(details.old_price)-Number(details.current_price))/Number(details.old_price)*100):null;onChange({...result,details,discount_percent:discount})}
