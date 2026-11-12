@@ -78,8 +78,8 @@ class CampaignTests(unittest.TestCase):
     def test_owner_scope_and_reference_validation(self):
         row=self.create().json();url='/campaigns/'+row['id']
         with Session(self.engine) as db:
-            db.add(User(id='other',username='other',email='other@example.com',password_hash='unused'));db.commit()
-        app.dependency_overrides[current_user]=lambda:User(id='other',username='other',email='other@example.com',password_hash='unused')
+            db.add(User(id='other',username='other',email='other@example.com',password_hash='unused',access_status='approved',is_admin=True,image_limit=0,image_requests_used=0));db.commit()
+        app.dependency_overrides[current_user]=lambda:User(id='other',username='other',email='other@example.com',password_hash='unused',access_status='approved',is_admin=True,image_limit=0,image_requests_used=0)
         self.assertEqual(self.client.get('/campaigns').json(),[])
         self.assertEqual(self.client.get(url).status_code,404)
         self.assertEqual(self.client.put(url,json={'revision':1,'settings':self.settings}).status_code,404)

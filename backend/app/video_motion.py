@@ -3,7 +3,7 @@ import copy
 import tempfile
 from datetime import timedelta
 from sqlalchemy import select, or_, and_
-from .accounts import now, aware
+from .accounts import now, aware, worker_access
 from . import storage, video_providers, video_render, video_audio
 
 def advance(db):
@@ -18,6 +18,8 @@ def advance(db):
         and_(Video.status=='processing',Video.updated_at<cutoff))).order_by(Video.updated_at).with_for_update(skip_locked=True).limit(1))
     if not row:
         return None
+    if not worker_access(db,row.owner_id,admin_only=True):
+        row.status='failed';row.error='Video access is not enabled for this account.';row.updated_at=now();db.commit();return row.id
     id=row.id;row.status='processing';row.updated_at=now();db.commit()
     provider=row.details['provider'];assets=copy.deepcopy(row.assets);tasks=assets.setdefault('tasks',[])
     count=1 if provider=='bfl' else len(assets['photos'])

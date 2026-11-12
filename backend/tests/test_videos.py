@@ -123,7 +123,7 @@ class VideoTests(unittest.TestCase):
         self.assertEqual(self.submit(products=[{'name':'','price':'-1'}]).status_code,422)
         self.assertEqual(self.submit().status_code,200)
         self.assertEqual(self.submit().status_code,429)
-        app.dependency_overrides[current_user]=lambda:User(id='other',username='other',email='other@example.com',password_hash='unused')
+        app.dependency_overrides[current_user]=lambda:User(id='other',username='other',email='other@example.com',password_hash='unused',access_status='approved',is_admin=True,image_limit=0,image_requests_used=0)
         self.assertEqual(self.client.get('/videos').json(),[])
         self.assertEqual(self.client.get('/videos/'+first['id']).status_code,404)
         self.assertEqual(self.client.get('/videos/'+first['id']+'/media').status_code,404)

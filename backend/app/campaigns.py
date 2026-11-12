@@ -13,7 +13,8 @@ from .database import Base, database
 from .gallery import GalleryAsset
 from .telegram import Connection
 
-router = APIRouter()
+from .accounts import admin_user
+router = APIRouter(dependencies=[Depends(admin_user)])
 MAX_DRAFTS = 10
 
 class Campaign(Base):

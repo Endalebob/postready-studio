@@ -21,7 +21,11 @@ class AccountTests(unittest.TestCase):
         self.persist.stop()
         app.dependency_overrides.clear();self.engine.dispose()
     def register(self,client,name):
-        return client.post('/auth/register',json={'username':name,'email':name+'@example.com','password':'A-long-test-password!','password_confirmation':'A-long-test-password!'})
+        response=client.post('/auth/register',json={'username':name,'email':name+'@example.com','password':'A-long-test-password!','password_confirmation':'A-long-test-password!'})
+        if response.status_code==200:
+            with Session(self.engine) as db:
+                user=db.get(User,response.json()['id']);user.access_status='approved';user.image_limit=50;db.commit()
+        return response
     def profile(self,client,name='Shop'):
         return client.put('/profile',json={'business_name':name,'address':'Addis Ababa','contacts':[{'kind':'Phone','value':'demo'},{'kind':'Telegram','value':'@demo'}],'language':'am','theme':'ethiopian-warmth'})
     def test_session_password_and_logout(self):

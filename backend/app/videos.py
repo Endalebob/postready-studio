@@ -16,7 +16,8 @@ from .database import Base, database
 from .images import normalize_image, MAX_BYTES
 from . import storage, video_render, video_audio, video_providers
 
-router=APIRouter()
+from .accounts import admin_user, worker_access
+router=APIRouter(dependencies=[Depends(admin_user)])
 
 class Video(Base):
     __tablename__='videos'
@@ -234,6 +235,8 @@ def process_video(db):
     row=db.scalar(select(Video).where(Video.status=='queued',Video.details['mode'].as_string()=='transitions').order_by(Video.created_at).with_for_update(skip_locked=True).limit(1))
     if not row:
         return motion_id
+    if not worker_access(db,row.owner_id,admin_only=True):
+        row.status='failed';row.error='Video access is not enabled for this account.';row.updated_at=now();db.commit();return row.id
     id=row.id;row.status='processing';row.updated_at=now();db.commit()
     try:
         photos=[storage.get(key) for key in row.assets['photos']]

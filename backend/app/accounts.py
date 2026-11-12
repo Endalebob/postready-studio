@@ -23,6 +23,12 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(40), unique=True)
     email: Mapped[str] = mapped_column(String(254), unique=True)
     password_hash: Mapped[str] = mapped_column(String(255))
+    access_status: Mapped[str] = mapped_column(String(20), default='pending')
+    is_admin: Mapped[bool] = mapped_column(default=False)
+    image_limit: Mapped[int] = mapped_column(default=0)
+    image_requests_used: Mapped[int] = mapped_column(default=0)
+    access_revision: Mapped[int] = mapped_column(default=1)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: now())
 
 
 class LoginSession(Base):
@@ -106,7 +112,7 @@ def aware(value):
     return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
 
 
-def current_user(request: Request, db: Session = Depends(database)):
+def session_user(request: Request, db: Session = Depends(database)):
     token = request.cookies.get('postready_session', '')
     session = db.get(LoginSession, digest(token)) if token else None
     if not session or aware(session.expires_at) <= now():
@@ -115,6 +121,46 @@ def current_user(request: Request, db: Session = Depends(database)):
     if not user:
         raise HTTPException(401, 'Please sign in to continue.')
     return user
+
+
+def approved(user):
+    return bool(user and (user.is_admin or user.access_status == 'approved'))
+
+
+def current_user(user: User = Depends(session_user)):
+    if not approved(user):
+        raise HTTPException(403, 'Your workspace access requires admin approval. Check your waitlist status.')
+    return user
+
+
+def admin_user(user: User = Depends(current_user)):
+    if not user.is_admin:
+        raise HTTPException(403, 'This feature is available to administrators only during the private preview.')
+    return user
+
+
+def user_view(user):
+    return {'id': user.id, 'username': user.username, 'access_status': user.access_status,
+            'is_admin': bool(user.is_admin), 'image_limit': user.image_limit,
+            'image_requests_used': user.image_requests_used,
+            'image_requests_remaining': None if user.is_admin else max(0, user.image_limit-user.image_requests_used)}
+
+
+def consume_image_request(db, owner):
+    """Caller commits before calling a provider, or atomically with its durable job."""
+    user = db.scalar(select(User).where(User.id == owner).with_for_update().execution_options(populate_existing=True))
+    if not approved(user):
+        raise HTTPException(403, 'Your workspace access requires admin approval.')
+    if not user.is_admin:
+        if user.image_requests_used >= user.image_limit:
+            raise HTTPException(403, 'Your image-request allowance is used up. Contact the administrator for more access.')
+        user.image_requests_used += 1
+    return user
+
+
+def worker_access(db, owner, admin_only=False):
+    user = db.scalar(select(User).where(User.id == owner).execution_options(populate_existing=True))
+    return bool(approved(user) and (not admin_only or user.is_admin))
 
 
 def check_rate(db, request, identifier):
@@ -148,14 +194,15 @@ def issue_session(db, response, user):
     db.commit()
     response.set_cookie('postready_session', token, max_age=7*86400, httponly=True,
                         secure=os.getenv('COOKIE_SECURE', 'false').lower() == 'true', samesite='lax', path='/')
-    return {'id': user.id, 'username': user.username}
+    return user_view(user)
 
 
 @router.post('/auth/register')
 def register(values: Registration, request: Request, response: Response, db: Session = Depends(database)):
     check_rate(db, request, values.email)
     import uuid
-    user = User(id=str(uuid.uuid4()), username=values.username, email=values.email, password_hash=hasher.hash(values.password))
+    user = User(id=str(uuid.uuid4()), username=values.username, email=values.email, password_hash=hasher.hash(values.password),
+                access_status='pending', is_admin=False, image_limit=0, image_requests_used=0, access_revision=1)
     db.add(user)
     try:
         db.commit()
@@ -177,8 +224,8 @@ def login(values: Login, request: Request, response: Response, db: Session = Dep
 
 
 @router.get('/auth/me')
-def me(user: User = Depends(current_user)):
-    return {'id': user.id, 'username': user.username}
+def me(user: User = Depends(session_user)):
+    return user_view(user)
 
 
 @router.post('/auth/logout')

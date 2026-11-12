@@ -15,6 +15,7 @@ from .accounts import current_user, database, User, now, aware
 from .ads import Ad, AdRevision, owned
 from . import storage, telegram_api as provider
 
+from .accounts import admin_user, worker_access
 router = APIRouter()
 
 class Connection(Base):
@@ -81,11 +82,11 @@ def attempt_view(row):
     return {'id': row.id, 'revision': row.revision, 'connection_id': row.connection_id, 'status': row.status, 'detail': row.detail,
             'title': row.title, 'message_id': row.message_id, 'link': link, 'created_at': aware(row.created_at).isoformat()}
 
-@router.get('/telegram/connection')
+@router.get('/telegram/connection', dependencies=[Depends(admin_user)])
 def connection(user: User = Depends(current_user), db: Session = Depends(database)):
     return connection_view(db.get(Connection, user.id))
 
-@router.post('/telegram/challenge')
+@router.post('/telegram/challenge', dependencies=[Depends(admin_user)])
 def challenge(user: User = Depends(current_user), db: Session = Depends(database)):
     if not provider.configured():
         raise HTTPException(503, 'Telegram is not configured yet.')
@@ -114,7 +115,7 @@ def challenge(user: User = Depends(current_user), db: Session = Depends(database
     return {**connection_view(row), 'command': '/postready_connect '+code,
             'bot_username': me['username'], 'start_url': 'https://t.me/'+me['username']+'?start='+code}
 
-@router.post('/telegram/connect')
+@router.post('/telegram/connect', dependencies=[Depends(admin_user)])
 def connect(values: Confirm, user: User = Depends(current_user), db: Session = Depends(database)):
     row = db.scalar(select(Connection).where(Connection.owner_id == user.id).with_for_update())
     if row and row.active:
@@ -141,7 +142,7 @@ def connect(values: Confirm, user: User = Depends(current_user), db: Session = D
         raise HTTPException(409, 'This channel is already connected to another account.')
     return connection_view(row)
 
-@router.delete('/telegram/connection')
+@router.delete('/telegram/connection', dependencies=[Depends(admin_user)])
 def disconnect(user: User = Depends(current_user), db: Session = Depends(database)):
     row = db.scalar(select(Connection).where(Connection.owner_id == user.id).with_for_update())
     if row:
@@ -157,7 +158,7 @@ def disconnect(user: User = Depends(current_user), db: Session = Depends(databas
         db.commit()
     return {'ok': True}
 
-@router.post('/telegram/check')
+@router.post('/telegram/check', dependencies=[Depends(admin_user)])
 def check_permissions(user: User = Depends(current_user), db: Session = Depends(database)):
     row = ready_connection(db,user.id)
     try:
@@ -227,7 +228,7 @@ def saved_revision(db, owner, ad_id, revision):
         raise HTTPException(422, 'Shorten the caption to 1024 characters before publishing to Telegram.')
     return ad, record
 
-@router.get('/ads/{ad_id}/publish-preview')
+@router.get('/ads/{ad_id}/publish-preview', dependencies=[Depends(admin_user)])
 def preview(ad_id: str, revision: int, user: User = Depends(current_user), db: Session = Depends(database)):
     ad, record = saved_revision(db,user.id,ad_id,revision)
     row = ready_connection(db,user.id)
@@ -248,7 +249,7 @@ def revision_png(ad_id: str, revision: int, user: User = Depends(current_user), 
         raise HTTPException(410, 'This advertisement has expired.')
     return Response(data,media_type='image/png')
 
-@router.post('/ads/{ad_id}/publish')
+@router.post('/ads/{ad_id}/publish', dependencies=[Depends(admin_user)])
 def publish(ad_id: str, values: Publish, user: User = Depends(current_user), db: Session = Depends(database)):
     if not values.confirmed:
         raise HTTPException(422, 'Review and confirm the post before publishing.')
@@ -275,19 +276,19 @@ def publish(ad_id: str, values: Publish, user: User = Depends(current_user), db:
             raise HTTPException(409, 'The destination changed. Review your post again.')
     return attempt_view(attempt)
 
-@router.get('/ads/{ad_id}/publishes')
+@router.get('/ads/{ad_id}/publishes', dependencies=[Depends(admin_user)])
 def publishes(ad_id: str, user: User = Depends(current_user), db: Session = Depends(database)):
     owned(db,user.id,ad_id)
     return [attempt_view(row) for row in db.scalars(select(PublishAttempt).where(PublishAttempt.owner_id == user.id,PublishAttempt.ad_id == ad_id).order_by(PublishAttempt.created_at.desc())).all()]
 
-@router.get('/publishes/{attempt_id}')
+@router.get('/publishes/{attempt_id}', dependencies=[Depends(admin_user)])
 def publish_status(attempt_id: str, user: User = Depends(current_user), db: Session = Depends(database)):
     row = db.scalar(select(PublishAttempt).where(PublishAttempt.id == attempt_id,PublishAttempt.owner_id == user.id))
     if not row:
         raise HTTPException(404, 'Publishing attempt not found.')
     return attempt_view(row)
 
-@router.post('/publishes/{attempt_id}/retry')
+@router.post('/publishes/{attempt_id}/retry', dependencies=[Depends(admin_user)])
 def retry_publish(attempt_id: str, values: Confirm, user: User = Depends(current_user), db: Session = Depends(database)):
     row = db.scalar(select(PublishAttempt).where(PublishAttempt.id == attempt_id,PublishAttempt.owner_id == user.id).with_for_update())
     if not row:
@@ -321,6 +322,8 @@ def process_publish(db):
     attempt_id = attempt.id
     finish(db,attempt,'publishing')
     try:
+        if not worker_access(db, attempt.owner_id, admin_only=True):
+            raise HTTPException(403, 'Publishing access is not enabled for this account.')
         if not attempt.ad_id:
             raise HTTPException(410, 'This advertisement is no longer available.')
         ad, record = saved_revision(db,attempt.owner_id,attempt.ad_id,attempt.revision)
@@ -329,7 +332,9 @@ def process_publish(db):
         png = storage.get(record.png_key)
         caption = record.payload['social_caption']
         db.expire_all()
-        # Recheck ownership, connection and deadline immediately before submission.
+        # Recheck account access, ownership, connection and deadline immediately before submission.
+        if not worker_access(db, attempt.owner_id, admin_only=True):
+            raise HTTPException(403, 'Publishing access is not enabled for this account.')
         owned(db,attempt.owner_id,attempt.ad_id)
         ready_connection(db,attempt.owner_id,attempt.connection_id)
     except HTTPException as exc:

@@ -7,6 +7,7 @@ from app import videos
 from app import gallery
 from app import campaigns
 from app import preparations
+from app import admin
 with engine().connect() as connection:
     context.configure(connection=connection, target_metadata=Base.metadata)
     with context.begin_transaction():

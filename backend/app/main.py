@@ -18,6 +18,8 @@ from .videos import router as videos_router
 from .gallery import router as gallery_router
 from .campaigns import router as campaigns_router
 from .preparations import router as preparations_router
+from .admin import router as admin_router
+from .accounts import consume_image_request, worker_access
 import base64
 
 
@@ -30,6 +32,7 @@ app.include_router(videos_router)
 app.include_router(gallery_router)
 app.include_router(campaigns_router)
 app.include_router(preparations_router)
+app.include_router(admin_router)
 
 @app.middleware('http')
 async def mutation_guard(request: Request, call_next):
@@ -50,6 +53,7 @@ def health():
 
 @app.post('/generate')
 async def create_ad(photo: UploadFile = File(...), details: str = Form(...), include_logo: bool = Form(True), user: User = Depends(current_user), db: Session = Depends(database)):
+    owner = user.id
     try:
         values = Details.model_validate_json(details)
     except ValidationError as exc:
@@ -59,21 +63,32 @@ async def create_ad(photo: UploadFile = File(...), details: str = Form(...), inc
     finally:
         await photo.close()
     logo = None
-    profile = db.get(Profile, user.id)
+    profile = db.get(Profile, owner)
     if include_logo and profile and profile.logo_key:
         try:
             logo = {'mime_type': 'image/png', 'base64': base64.b64encode(await run_in_threadpool(storage.get, profile.logo_key)).decode()}
         except Exception:
             raise HTTPException(503, 'Could not load your logo. Please try again.')
     business_name = profile.data['business_name'] if profile else None
+    consume_image_request(db, owner)
+    db.commit()  # Reserve an attempt before a provider call; uncertain failures still consume it.
     db.close()  # Do not hold a database connection during a long provider call.
+    def recheck_access():
+        try:
+            if not worker_access(db, owner):
+                raise HTTPException(403, 'Your workspace access requires admin approval.')
+        finally:
+            db.close()
     try:
-        result = await asyncio.wait_for(generate(image, values), timeout=180)
+        result = await asyncio.wait_for(generate(image, values, before_artwork=recheck_access), timeout=180)
+        await run_in_threadpool(recheck_access)
         if logo:
             result['logo'] = logo
         if business_name:
             result['business_name'] = business_name
-        return await run_in_threadpool(persist_generation, db, user.id, result, image)
+        return await run_in_threadpool(persist_generation, db, owner, result, image)
+    except HTTPException:
+        raise
     except asyncio.TimeoutError:
         raise HTTPException(504, 'We couldn’t create your ad. Please try again.')
     except Exception:

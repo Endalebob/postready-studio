@@ -76,7 +76,7 @@ class PreparationTests(unittest.TestCase):
         self.assertEqual(self.start(confirmed=False).status_code,422)
         self.assertEqual(self.start(gallery_revision=9).status_code,409)
         job=self.start().json();self.start();self.assertEqual(self.start().status_code,409)
-        app.dependency_overrides[current_user]=lambda:User(id='other',username='other',email='other@example.com',password_hash='unused')
+        app.dependency_overrides[current_user]=lambda:User(id='other',username='other',email='other@example.com',password_hash='unused',access_status='approved',is_admin=True,image_limit=0,image_requests_used=0)
         self.assertEqual(self.client.get('/preparations/'+job['id']).status_code,404)
         self.assertEqual(self.client.post('/preparations/'+job['id']+'/retry-finalization').status_code,404)
         self.assertEqual(self.start().status_code,404)

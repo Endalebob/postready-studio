@@ -7,13 +7,16 @@ from PIL import Image
 from app.main import app
 from app.accounts import current_user, User
 from support import install_database
+from sqlalchemy.orm import Session
 
 class ApiTests(unittest.TestCase):
     def setUp(self):
         self.persist=patch('app.main.persist_generation',side_effect=lambda db,owner,result,photo:result)
         self.persist.start()
         self.engine=install_database()
-        app.dependency_overrides[current_user]=lambda:User(id='test-owner',username='test',email='test@example.com',password_hash='unused')
+        with Session(self.engine) as db:
+            db.add(User(id='test-owner',username='test',email='test@example.com',password_hash='unused',access_status='approved',is_admin=True));db.commit()
+        app.dependency_overrides[current_user]=lambda:User(id='test-owner',username='test',email='test@example.com',password_hash='unused',access_status='approved',is_admin=True,image_limit=0,image_requests_used=0)
         self.client = TestClient(app,headers={'x-postready':'1'})
         self.details = dict(product_name='Shoes',current_price='100',contacts=[{'kind':'Phone','value':'demo-contact'}],language='en')
         out=io.BytesIO();Image.new('RGB',(40,40)).save(out,format='PNG');self.photo=out.getvalue()

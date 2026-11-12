@@ -13,7 +13,8 @@ from .schemas import Details
 from .images import normalize_image, MAX_BYTES
 from . import storage
 
-router=APIRouter()
+from .accounts import admin_user
+router=APIRouter(dependencies=[Depends(admin_user)])
 MAX_ITEMS=100
 
 class GalleryAsset(Base):

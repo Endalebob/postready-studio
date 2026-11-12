@@ -17,7 +17,8 @@ from .schemas import Details, Copy
 from .ads import Ad, AdRevision, copy_payload, flush_sources, prefix
 from . import ad_render, gemini, storage
 
-router = APIRouter()
+from .accounts import admin_user, worker_access, consume_image_request
+router = APIRouter(dependencies=[Depends(admin_user)])
 ACTIVE = ('queued', 'copying', 'copy_ready', 'artwork_calling', 'artwork_ready')
 TERMINAL = ('ready', 'needs_edit', 'failed', 'unknown')
 
@@ -64,7 +65,7 @@ def valid_inputs(db, row):
     campaign = db.scalar(select(Campaign).where(Campaign.id == row.campaign_id).with_for_update().execution_options(populate_existing=True))
     connection = db.scalar(select(Connection).where(Connection.owner_id == row.owner_id).with_for_update().execution_options(populate_existing=True))
     gallery = db.scalar(select(GalleryAsset).where(GalleryAsset.id == row.snapshot['gallery_id']).with_for_update().execution_options(populate_existing=True))
-    return bool(campaign and not campaign.deleted and campaign.owner_id == row.owner_id
+    return bool(worker_access(db, row.owner_id, admin_only=True) and campaign and not campaign.deleted and campaign.owner_id == row.owner_id
                 and campaign.revision == row.snapshot['campaign_revision']
                 and gallery and gallery.owner_id == row.owner_id and eligible(gallery)
                 and gallery.revision == row.snapshot['gallery_revision']
@@ -109,6 +110,7 @@ def start(campaign_id: str, values: Start, user: User = Depends(current_user), d
                 'campaign_revision': campaign.revision, 'connection_id': connection.connection_id,
                 'instructions': campaign.settings['instructions'], 'notes': gallery.campaign_notes,
                 'business_name': profile.data.get('business_name', '') if profile else ''}
+    consume_image_request(db, user.id)
     row = Preparation(id=str(uuid.uuid4()), owner_id=user.id, campaign_id=campaign.id, request_key=str(values.request_key),
                       ad_id=str(uuid.uuid4()), status='queued', snapshot=snapshot, assets=assets, output={},
                       detail=None, created_at=now(), updated_at=now())

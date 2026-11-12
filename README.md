@@ -96,3 +96,25 @@ Open a saved campaign and use **Prepare a post**. Select an approved campaign pr
 Preparations persist across API/worker restarts. In-flight provider calls are never blindly resubmitted after an uncertain result. A confirmed artwork result can be saved again without another AI call; text that cannot fit remains accessible in the editor for correction. Changing the source approval or campaign before completion stops preparation. Guardrails allow two actively running preparations and ten requests per rolling 24 hours per owner. Private preparation snapshots are cleaned up after 30 days; ordinary ad expiry/cleanup is independent.
 
 This step generates only after an explicit owner request. It does not schedule or publish campaign posts. Migration `007_preparations` and the `campaign-preparations` Celery Beat task add the durable preparation workflow. The existing ad editor reopens exact saved PNGs and preserves the product-image region when editing text.
+
+
+### Waitlist and administrator approval
+
+Public registration creates a pending waitlist account, not an active workspace. Pending/suspended users can sign in, inspect their access status and sign out; workspace APIs reject their requests. The public homepage offers **Join the waitlist**. Approval grants the image workspace only: business profile/logo, image creation, editing and saved ads. Video, gallery/campaign tools and Telegram integration/publishing are admin-only during this private preview.
+
+Administrators use **Access requests** to approve/suspend users and set a total image-request allowance (default three in the form). Requests already used are never reset. The total cannot be set below usage; setting it equal to usage leaves zero remaining. Failed/uncertain generation attempts count, and quota is atomically reserved before calling a provider. Administrators have full workspace access and are not subject to tester allowances. Approvals never grant administrator rights, and every access change is recorded in the audit table.
+
+**Deployment:** migration `008_waitlist` puts every existing non-bootstrapped account on the waitlist while preserving its credentials and content. No account is automatically selected as administrator. Back up PostgreSQL and MinIO, build the new images, and stop old web/API/worker/beat processes before applying the update so old workers cannot bypass the new gate. Start the updated API and confirm migration 008, then explicitly enable your own existing account on the server:
+
+```sh
+docker compose build api web worker beat
+docker compose stop web worker beat api
+docker compose up -d --no-deps api
+docker compose exec -T api alembic current
+docker compose exec -T api python -m app.admin bootstrap --username YOUR_EXISTING_USERNAME
+docker compose up -d --no-deps web worker beat
+```
+
+Replace `YOUR_EXISTING_USERNAME` with your own account username. If you do not yet have an account, start web, join the waitlist, then run the bootstrap command for that account. Refresh/sign in and open **Access requests**. Keep the production `.env`/volumes and use the production compose file, not the ignored local verification override. Do not undo migration 008 while exposing the old application publicly: the old code has no approval gate.
+
+Queued generation/video/publishing work rechecks account privileges; revocation blocks future work, including the next image-provider phase. A provider request already in flight cannot be recalled. Waitlist approval does not send email; users can sign in or check their status.

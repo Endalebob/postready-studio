@@ -18,10 +18,10 @@ class AdTests(unittest.TestCase):
     def setUp(self):
         self.engine=install_database()
         self.client=TestClient(app,headers={'x-postready':'1'})
-        self.user=User(id='owner',username='owner',email='owner@example.com',password_hash='unused')
+        self.user=User(id='owner',username='owner',email='owner@example.com',password_hash='unused',access_status='approved',is_admin=True,image_limit=0,image_requests_used=0)
         with Session(self.engine) as db:
             db.add(self.user);db.commit()
-        app.dependency_overrides[current_user]=lambda:User(id='owner',username='owner',email='owner@example.com',password_hash='unused')
+        app.dependency_overrides[current_user]=lambda:User(id='owner',username='owner',email='owner@example.com',password_hash='unused',access_status='approved',is_admin=True,image_limit=0,image_requests_used=0)
         self.env=patch.dict(os.environ,{'MINIO_SECRET_KEY':'only-for-unit-tests'});self.env.start()
         self.objects={}
         self.put=patch('app.storage.put',side_effect=lambda key,data,*args:self.objects.__setitem__(key,data));self.put.start()
@@ -53,12 +53,12 @@ class AdTests(unittest.TestCase):
             self.assertIsNotNone(db.get(AdRevision,(ad_id,2)));self.assertEqual(aware(db.get(Ad,ad_id).expires_at).isoformat(),expiry)
     def test_owner_scope_and_exact_boundary_all_routes(self):
         ad=self.generate();ad_id=ad['id'];self.save(ad_id)
-        app.dependency_overrides[current_user]=lambda:User(id='other',username='other',email='other@example.com',password_hash='unused')
+        app.dependency_overrides[current_user]=lambda:User(id='other',username='other',email='other@example.com',password_hash='unused',access_status='approved',is_admin=True,image_limit=0,image_requests_used=0)
         self.assertEqual(self.client.get('/ads').json(),[])
         for method,path in [('GET','/ads/'+ad_id),('GET','/ads/'+ad_id+'/png'),('DELETE','/ads/'+ad_id)]:
             self.assertEqual(self.client.request(method,path).status_code,404)
         self.assertEqual(self.save(ad_id).status_code,404)
-        app.dependency_overrides[current_user]=lambda:User(id='owner',username='owner',email='owner@example.com',password_hash='unused')
+        app.dependency_overrides[current_user]=lambda:User(id='owner',username='owner',email='owner@example.com',password_hash='unused',access_status='approved',is_admin=True,image_limit=0,image_requests_used=0)
         with Session(self.engine) as db:
             expiry=aware(db.get(Ad,ad_id).expires_at)
         with patch('app.ads.now',return_value=expiry-timedelta(microseconds=1)):

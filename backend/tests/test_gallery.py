@@ -37,7 +37,7 @@ class GalleryTests(unittest.TestCase):
 
     def test_every_route_is_owner_scoped_before_storage(self):
         row=self.create().json();url='/gallery/'+row['id']
-        app.dependency_overrides[current_user]=lambda:User(id='other',username='other',email='other@example.com',password_hash='unused')
+        app.dependency_overrides[current_user]=lambda:User(id='other',username='other',email='other@example.com',password_hash='unused',access_status='approved',is_admin=True,image_limit=0,image_requests_used=0)
         self.assertEqual(self.client.get('/gallery').json(),[])
         with patch('app.storage.get') as get:
             for suffix in ['', '/image','/image?thumbnail=true']:

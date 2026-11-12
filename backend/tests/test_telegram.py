@@ -110,11 +110,11 @@ class TelegramTests(unittest.TestCase):
             process_publish(db);send.assert_called_once()
     def test_disconnect_stops_queued_posts_and_status_is_owner_scoped(self):
         ad,attempt,values=self.queued()
-        app.dependency_overrides[current_user]=lambda:User(id='other',username='other',email='other@example.com',password_hash='unused')
+        app.dependency_overrides[current_user]=lambda:User(id='other',username='other',email='other@example.com',password_hash='unused',access_status='approved',is_admin=True,image_limit=0,image_requests_used=0)
         self.assertEqual(self.client.get('/publishes/'+attempt['id']).status_code,404)
         self.assertEqual(self.client.get('/ads/'+ad['id']+'/publishes').status_code,404)
         self.assertEqual(self.client.get('/ads/'+ad['id']+'/revisions/2/png').status_code,404)
-        app.dependency_overrides[current_user]=lambda:User(id='owner',username='owner',email='owner@example.com',password_hash='unused')
+        app.dependency_overrides[current_user]=lambda:User(id='owner',username='owner',email='owner@example.com',password_hash='unused',access_status='approved',is_admin=True,image_limit=0,image_requests_used=0)
         self.assertEqual(self.client.delete('/telegram/connection').status_code,200)
         with Session(self.engine) as db,patch('app.telegram_api.send_photo') as send:
             process_publish(db);send.assert_not_called()
