@@ -118,3 +118,10 @@ docker compose up -d --no-deps web worker beat
 Replace `YOUR_EXISTING_USERNAME` with your own account username. If you do not yet have an account, start web, join the waitlist, then run the bootstrap command for that account. Refresh/sign in and open **Access requests**. Keep the production `.env`/volumes and use the production compose file, not the ignored local verification override. Do not undo migration 008 while exposing the old application publicly: the old code has no approval gate.
 
 Queued generation/video/publishing work rechecks account privileges; revocation blocks future work, including the next image-provider phase. A provider request already in flight cannot be recalled. Waitlist approval does not send email; users can sign in or check their status.
+
+
+### Light and dark appearance
+
+Use the sun/moon control in the header to switch the app appearance. It follows the device color preference initially, then remembers an explicit choice in this browser. The saved preference is applied before the page paints and synchronized between open tabs. App appearance does not change the selected advertisement palette or exported artwork.
+
+Shared interface colors are CSS variables in `frontend/app/appearance.css`; `ThemeToggle.tsx` manages the preference and `app/layout.tsx` applies the initial selection. Production frontend build/TypeScript and desktop/mobile visual checks passed, including reload persistence, keyboard switching, native form controls, admin/gallery/media screens and saved-ad preview palettes. No backend behavior or database schema changed.

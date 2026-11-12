@@ -1,0 +1,97 @@
+:root {
+  color-scheme: light;
+  --page-bg: #f6f2e7;
+  --surface: #fffdf7;
+  --input-bg: #fffefa;
+  --surface-muted: #f3f0e7;
+  --accent-surface: #edf2e5;
+  --text: #252e28;
+  --muted: #697065;
+  --brand: #326348;
+  --brand-hover: #264f39;
+  --brand-strong: #285a3e;
+  --on-brand: #ffffff;
+  --gold: #b08b3b;
+  --border: #dedacb;
+  --control-border: #c4cfba;
+  --danger: #9b3528;
+  --danger-border: #e6c7bc;
+  --danger-bg: #fff3ee;
+  --warning-text: #71591e;
+  --warning-border: #e1cf9a;
+  --warning-bg: #fff6df;
+  --shadow-soft: #293b2d04;
+  --shadow: #252e2812;
+  --shadow-popover: #253e2820;
+  --media-bg: #121212;
+  --example-bg: #e9e8d9;
+  --example-border: #d2d2bc;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --page-bg: #111914;
+  --surface: #19231c;
+  --input-bg: #121c16;
+  --surface-muted: #212e25;
+  --accent-surface: #253c2c;
+  --text: #edf1e8;
+  --muted: #b1bfae;
+  --brand: #9acfa9;
+  --brand-hover: #b5dfbf;
+  --brand-strong: #b1dfbc;
+  --on-brand: #14251a;
+  --gold: #e0bf76;
+  --border: #35473a;
+  --control-border: #526d58;
+  --danger: #ffb4a5;
+  --danger-border: #825244;
+  --danger-bg: #38251f;
+  --warning-text: #f0d28c;
+  --warning-border: #796437;
+  --warning-bg: #342e1d;
+  --shadow-soft: #00000012;
+  --shadow: #00000030;
+  --shadow-popover: #00000060;
+}
+
+/* Keep generated assets and illustrative ad palettes independent of app appearance. */
+.example-ad {
+  color-scheme: light;
+  color: #252e28;
+  --brand: #326348;
+  --text: #252e28;
+  --muted: #697065;
+  --gold: #b08b3b;
+}
+
+a { color: var(--brand); }
+:root .primary, :root .brand-mark, :root .workspace-nav .nav-create { color: var(--on-brand); }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
+.remove-contact:hover { background: var(--danger-bg); }
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid var(--control-border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.theme-toggle:hover, .theme-toggle[aria-pressed='true'] { background: var(--accent-surface); }
+.theme-toggle svg { flex-shrink: 0; }
+@media(max-width:700px) {
+  .theme-toggle { width: 40px; height: 40px; padding: 9px; }
+  .theme-toggle-label { display: none; }
+  .account-menu summary>span:last-child { display: none; }
+}
+@media(max-width:380px) {
+  .menu-label { display: none; }
+  .menu-toggle { width: 40px; justify-content: center; padding-inline: 8px; }
+}

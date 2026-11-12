@@ -1,5 +1,6 @@
 import {useRef,useState} from 'react';
 import {User} from '../lib/types';
+import ThemeToggle from './ThemeToggle';
 
 const destinations=[
  {id:'home',label:'Overview',mark:'◈'},
@@ -19,11 +20,12 @@ export default function AppHeader({user,loading,active,navigate,logout}:{user:Us
   <div className="header-top">
    <button className="brand" aria-label="PostReady Studio home" onClick={()=>go('home')}><span className="brand-mark">P</span><span className="brand-name">PostReady <strong>Studio</strong></span></button>
    <div className="header-account">
+    <ThemeToggle/>
     {loading?<span className="header-loading">Loading…</span>:user?<details ref={account} className="account-menu" key={active} onKeyDown={e=>{if(e.key==='Escape'){e.currentTarget.open=false;e.currentTarget.querySelector('summary')?.focus()}}}>
      <summary aria-label="Account menu"><span className="user-avatar">{user.username.slice(0,1).toUpperCase()}</span><span className="account-label">{canUse?'Your workspace':'Account'}</span><span aria-hidden="true">⌄</span></summary>
      <div className="account-popover"><span className="account-identity">{user.username}</span>{canUse&&<button onClick={()=>go('profile')}>Business profile</button>}<button onClick={()=>{setExpanded(false);void logout()}}>Sign out</button></div>
     </details>:<button className="secondary" onClick={()=>go('account')}>Sign in</button>}
-    {canUse&&<button className="menu-toggle" aria-expanded={expanded} aria-controls="workspace-navigation" onClick={()=>setExpanded(!expanded)}>{expanded?'Close':'Menu'} <span aria-hidden="true">{expanded?'×':'☰'}</span></button>}
+    {canUse&&<button className="menu-toggle" aria-label={expanded?'Close navigation':'Open navigation'} aria-expanded={expanded} aria-controls="workspace-navigation" onClick={()=>setExpanded(!expanded)}><span className="menu-label">{expanded?'Close':'Menu'}</span> <span aria-hidden="true">{expanded?'×':'☰'}</span></button>}
    </div>
   </div>
   {canUse&&<nav id="workspace-navigation" aria-label="Workspace" className={'workspace-nav'+(expanded?' is-open':'')}>
