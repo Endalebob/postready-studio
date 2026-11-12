@@ -5,6 +5,7 @@ from app import ads
 from app import telegram
 from app import videos
 from app import gallery
+from app import campaigns
 with engine().connect() as connection:
     context.configure(connection=connection, target_metadata=Base.metadata)
     with context.begin_transaction():

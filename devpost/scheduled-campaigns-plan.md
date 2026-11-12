@@ -70,7 +70,7 @@ The backend remains authoritative for ownership, eligibility, scheduling, consen
 - Persistent owner-scoped product gallery.
 - Gallery create, edit, approve, deactivate and delete operations.
 - Campaign create, edit, pause and resume operations.
-- Daily, weekly and selected-weekday schedules.
+- Daily, weekly and monthly schedules, with weekly selected by default.
 - IANA timezone and local posting time.
 - Telegram destination selection.
 - English or Amharic campaign language.
@@ -133,7 +133,7 @@ The owner selects:
 - Social provider
 - Verified destination
 - Gallery items or “all approved items”
-- Daily, weekly or selected weekdays
+- Daily, weekly or monthly (weekly selected by default)
 - Local posting time
 - IANA timezone
 - English or Amharic
@@ -366,8 +366,9 @@ Suggested fields:
 - `provider`: initially `telegram`
 - `destination_id`: verified connection/destination identifier
 - `timezone`: IANA timezone name
-- `schedule_type`: `daily`, `weekly` or `weekdays`
-- `weekdays`: validated list for selected weekdays
+- `schedule_type`: `daily`, `weekly` or `monthly`; defaults to `weekly`
+- `weekday`: required for weekly schedules (0–6)
+- `day_of_month`: required for monthly schedules (1–31)
 - `local_time`: wall-clock time
 - `language`: `am` or `en`
 - `theme`
@@ -490,7 +491,9 @@ First release:
 
 - Daily at one local time
 - Weekly on one weekday at one local time
-- Selected weekdays at one local time
+- Monthly on a selected day of month (1–31) at one local time
+- Weekly is the default selection; the owner chooses the frequency
+- Proposed short-month behavior: clamp to the last calendar day and disclose this in the form and next-run preview
 
 Do not expose raw cron syntax initially.
 
@@ -1176,3 +1179,7 @@ Implement only Slice 0 and Slice 1 first:
 2. Add the persistent owner-approved gallery.
 
 These changes are independent of LangGraph and establish the data boundary the later agent workflow requires. Continue learning LangGraph in parallel, then use a small graph for Slice 2 preparation and approval orchestration after the gallery and scheduling contracts are tested.
+
+## Schedule clarification — 2026-11-12
+
+Owner requires daily, weekly and monthly scheduling, with weekly only the default. The next setup step must expose all three choices. Short-month clamping is proposed in the setup checklist and must be disclosed to the owner.

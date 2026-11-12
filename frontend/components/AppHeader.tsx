@@ -4,6 +4,7 @@ import {User} from '../lib/types';
 const destinations=[
  {id:'home',label:'Overview',mark:'◈'},
  {id:'library',label:'My ads',mark:'▧'},
+ {id:'campaigns',label:'Campaigns',mark:'◷'},
  {id:'gallery',label:'Campaign gallery',mark:'▦'},
  {id:'video',label:'Video studio',mark:'▷'},
  {id:'social',label:'Social channels',mark:'↗'},

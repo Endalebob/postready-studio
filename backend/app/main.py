@@ -16,6 +16,7 @@ from .ads import router as ads_router, persist_generation
 from .telegram import router as telegram_router
 from .videos import router as videos_router
 from .gallery import router as gallery_router
+from .campaigns import router as campaigns_router
 import base64
 
 
@@ -26,6 +27,7 @@ app.include_router(ads_router)
 app.include_router(telegram_router)
 app.include_router(videos_router)
 app.include_router(gallery_router)
+app.include_router(campaigns_router)
 
 @app.middleware('http')
 async def mutation_guard(request: Request, call_next):
