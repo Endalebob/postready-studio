@@ -50,10 +50,13 @@ class Edit(BaseModel):
 def prefix(ad):
     return f'ads/{ad.owner_id}/{ad.id}/'
 
-def receipt(owner, ad_id, expiry):
+def receipt(owner, ad_id, expiry, created_at=None):
     message = f'{owner}|{ad_id}|{expiry}'
-    signature = hmac.new(os.environ['MINIO_SECRET_KEY'].encode(), ('postready-generation:'+message).encode(), hashlib.sha256).hexdigest()
-    return {'id': ad_id, 'expires_at': expiry, 'signature': signature}
+    domain='postready-generation:'
+    if created_at is not None:
+        domain='postready-generation-v2:';message+='|'+created_at
+    signature = hmac.new(os.environ['MINIO_SECRET_KEY'].encode(), (domain+message).encode(), hashlib.sha256).hexdigest()
+    return {'id': ad_id, 'expires_at': expiry, 'signature': signature,**({'created_at':created_at} if created_at is not None else {})}
 
 def owned(db, owner, ad_id, lock=False):
     query = select(Ad).where(Ad.id == ad_id, Ad.owner_id == owner, Ad.deleted == False)
@@ -88,8 +91,8 @@ def metadata(ad, has_png=False):
 def persist_generation(db, owner, result, photo):
     timestamp = now()
     ad_id = str(uuid.uuid4())
-    expiry = timestamp+timedelta(days=7)
-    signed = receipt(owner, ad_id, expiry.isoformat())
+    expiry = timestamp+timedelta(days=30)
+    signed = receipt(owner, ad_id, expiry.isoformat(),timestamp.isoformat())
     assets = {'artwork': result['artwork'], 'source_photo': {'mime_type': 'image/jpeg', 'base64': base64.b64encode(photo).decode()}}
     if result.get('logo'):
         assets['logo'] = result['logo']
@@ -205,10 +208,11 @@ def recover(edits: str = Form(...), generated: UploadFile = File(...), png: Uplo
             raise ValueError()
         result = json.loads(encoded)
         signed = result['receipt']
-        expected = receipt(user.id, str(uuid.UUID(signed['id'])), signed['expires_at'])
+        expected = receipt(user.id, str(uuid.UUID(signed['id'])), signed['expires_at'],signed.get('created_at'))
         if not hmac.compare_digest(expected['signature'], signed['signature']):
             raise ValueError()
         expiry = datetime.fromisoformat(signed['expires_at'])
+        created_at = datetime.fromisoformat(signed['created_at']) if signed.get('created_at') else expiry-timedelta(days=7)
         if aware(expiry) <= now():
             raise HTTPException(410, 'This advertisement has expired.')
         assets = {k: result[k] for k in ('artwork', 'source_photo', 'logo') if k in result}
@@ -228,7 +232,7 @@ def recover(edits: str = Form(...), generated: UploadFile = File(...), png: Uplo
         raise HTTPException(422, 'Could not restore this generated advertisement.')
     ad = db.get(Ad, signed['id'])
     if ad is None:
-        ad = Ad(id=signed['id'], owner_id=user.id, created_at=expiry-timedelta(days=7), expires_at=expiry,
+        ad = Ad(id=signed['id'], owner_id=user.id, created_at=created_at, expires_at=expiry,
                 revision=1, payload=copy_payload(result), sources={}, pending_sources=assets, deleted=False)
         db.add(ad)
         try:

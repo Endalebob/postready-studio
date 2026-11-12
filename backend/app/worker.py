@@ -5,6 +5,7 @@ from .database import engine
 from .ads import cleanup
 from .telegram import poll_updates, process_publish
 from .videos import process_video, cleanup_videos
+from .gallery import cleanup as cleanup_gallery
 
 celery = Celery('postready', broker=os.getenv('CELERY_BROKER_URL', 'redis://redis:6379/0'))
 celery.conf.update(timezone='UTC', task_ignore_result=True, broker_connection_retry_on_startup=True,
@@ -12,7 +13,8 @@ celery.conf.update(timezone='UTC', task_ignore_result=True, broker_connection_re
                                   'telegram-updates': {'task': 'postready.telegram_updates', 'schedule': 15.0},
                                   'telegram-posts': {'task': 'postready.telegram_posts', 'schedule': 5.0},
                                   'video-jobs': {'task': 'postready.video_jobs', 'schedule': 5.0},
-                                  'expired-videos': {'task': 'postready.video_cleanup', 'schedule': 300.0}})
+                                  'expired-videos': {'task': 'postready.video_cleanup', 'schedule': 300.0},
+                                  'deleted-gallery': {'task': 'postready.gallery_cleanup', 'schedule': 60.0}})
 
 @celery.task(name='postready.cleanup')
 def expired_ads():
@@ -38,3 +40,8 @@ def video_jobs():
 def video_cleanup():
     with Session(engine()) as db:
         return cleanup_videos(db)
+
+@celery.task(name='postready.gallery_cleanup')
+def gallery_cleanup():
+    with Session(engine()) as db:
+        return cleanup_gallery(db)

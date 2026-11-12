@@ -9,7 +9,7 @@ Create an advertisement from one product photo, with Amharic or English copy. Bu
 3. Run `docker compose up --build`.
 4. Open http://localhost:3010.
 
-The key stays in FastAPI. Accounts and business profiles are now stored in PostgreSQL, with private business logos in MinIO. Generated artwork and editable copy are saved to a private seven-day library; use Save advertisement to commit edits and the current PNG. Google receives the photo and relevant details for generation. Live generation requires available API quota and may incur provider charges.
+The key stays in FastAPI. Accounts and business profiles are now stored in PostgreSQL, with private business logos in MinIO. Generated artwork and editable copy are saved to a private 30-day image-ad library; use Save advertisement to commit edits and the current PNG. Google receives the photo and relevant details for generation. Live generation requires available API quota and may incur provider charges.
 
 Home imagery is labeled as illustrative. The app must complete live generation for a real proof of concept; simulated results are not proof of the core flow.
 
@@ -39,7 +39,7 @@ Local app origin defaults to `http://localhost:3010`. Set `APP_ORIGIN` to the ex
 
 ## Saved ads
 
-My Ads lists active advertisements. Generation fixes the expiry date at seven days; edits never renew it. Save advertisement stores the editable revision and its PNG. Reopening an ad restores its source artwork and logo snapshot. Conflicting saves are rejected rather than overwriting another tab. Delete requires confirmation and hides the ad immediately. Expired ads are denied on all access routes, with Celery/Redis cleanup every five minutes removing private assets and content. Profile logos are retained independently.
+My Ads lists active advertisements. New image generation fixes expiry at 30 days; existing stored deadlines are preserved and edits never renew them. Save advertisement stores the editable revision and its PNG. Reopening an ad restores its source artwork and logo snapshot. Conflicting saves are rejected rather than overwriting another tab. Delete requires confirmation and hides the ad immediately. Expired ads are denied on all access routes, with Celery/Redis cleanup every five minutes removing private assets and content. Profile logos are retained independently.
 
 If MinIO is unavailable, a temporary database copy keeps the generated source recoverable until saving succeeds or the fixed deadline arrives. A database outage returns an unsaved result with a signed deadline for a saving retry; downloading the current preview remains available. Storage errors never claim that edits or a PNG have been saved.
 
@@ -74,3 +74,9 @@ Select AI product motion and choose BFL FLUX 3 Draft or Google Veo 3.1 Standard.
 Paid task references persist in private job assets. Workers perform short submit/poll/download/compose actions and resume saved references after restarts. A pre-send marker prevents blind repeat submissions if a worker crashes before saving the provider response. Uncertain submissions require checking the provider dashboard before another request; the app never silently switches providers. Provider audio is removed, then the selected soundtrack/voice is mixed locally. Exact product names/prices and profile details/logo are rendered locally around the generated footage. AI product fidelity and timing still need preview review before sharing. Provider jobs have a two-hour processing window; unsuccessful assets are cleaned after one day, uncertain assets after seven days, and completed videos seven days after success.
 
 Provider contracts: https://docs.bfl.ai/api-reference/utility/generate-a-video-with-flux-3 and https://ai.google.dev/gemini-api/docs/veo. Pricing: https://docs.bfl.ai/flux_3/flux3_overview and https://ai.google.dev/gemini-api/docs/pricing.
+
+## Campaign gallery foundation
+
+Campaign Gallery stores reusable product photos and validated facts privately, independently of generated-ad expiry. Add a photo, name, description, price, optional old price, contacts, address, language/theme and optional campaign notes. Review the saved photo/facts and explicitly approve it for future campaign use. Only active approved items are eligible. Editing facts/notes or changing active status clears approval; optimistic revisions reject stale edits and approvals. Deactivate excludes an item without removing it. Delete hides it immediately and background cleanup retries private-object removal. Gallery images persist until deletion; account deletion requires a separate reference-aware asset cleanup workflow when implemented.
+
+The first foundation supports 100 retained items per account, including pending deletion cleanup. Each photo uses the existing JPEG/PNG/WebP limits of 10 MB and 20 megapixels. Source photos remain fixed for an item; upload a new item for a different photo. Campaign scheduling, automatic posting and analytics are not enabled by this foundation. Existing image-ad deadlines are preserved; newly generated image ads last 30 days, and video retention remains seven days. New signed save-recovery receipts include their original generation time; older seven-day receipts remain supported.
